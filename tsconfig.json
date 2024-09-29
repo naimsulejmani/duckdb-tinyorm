@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ES2023"
+    ],
+    "module": "NodeNext",
+    "target": "ES2022",
+    "moduleResolution": "NodeNext",
+    "moduleDetection": "force",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": false,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "declaration": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipDefaultLibCheck": true,
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+  }
+}
