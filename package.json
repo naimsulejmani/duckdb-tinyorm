@@ -1,0 +1,37 @@
+{
+  "name": "duckdb-tinyorm",
+  "version": "1.0.0",
+  "description": "TinyORM for Duckdb, easy setup",
+  "main": "node dist/index.js",
+  "scripts": {
+    "test": "npm run test",
+    "dev": "nodemon --exec ts-node src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naimsulejmani/duckdb-tinyorm.git"
+  },
+  "keywords": [
+    "duckdb",
+    "orm",
+    "tinyorm",
+    "database"
+  ],
+  "author": "Naim Sulejmani",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/naimsulejmani/duckdb-tinyorm/issues"
+  },
+  "homepage": "https://github.com/naimsulejmani/duckdb-tinyorm#readme",
+  "dependencies": {
+    "@types/node": "^22.7.4",
+    "dotenv": "^16.4.5",
+    "duckdb": "^1.1.0",
+    "globals": "^15.9.0",
+    "nodemon": "^3.1.7",
+    "reflect-metadata": "^0.2.2",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
