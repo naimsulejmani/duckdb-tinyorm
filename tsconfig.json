@@ -3,9 +3,9 @@
     "lib": [
       "ES2023"
     ],
-    "module": "NodeNext",
+    "module": "Node16",
     "target": "ESNext",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "Node16",
     "moduleDetection": "force",
     "outDir": "./dist",
     "rootDir": "./src",
