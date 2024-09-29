@@ -9,7 +9,7 @@
     "moduleDetection": "force",
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": false,
+    "strict": true, // Enabled for better type safety
     "esModuleInterop": true,
     "allowJs": true,
     "declaration": true,
@@ -19,6 +19,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipDefaultLibCheck": true,
     "sourceMap": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": true
   }
 }

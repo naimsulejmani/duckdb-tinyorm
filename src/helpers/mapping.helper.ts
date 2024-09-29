@@ -4,7 +4,7 @@ export function modelToArray<T>(model: T, classType: new() => T): unknown[] {
     const propertyNames = Object.getOwnPropertyNames(new classType());
     const array = [];
     for (const propertyName of propertyNames) {
-        array.push(model[propertyName]);
+        array.push((model as any)[propertyName]);
     }
     return array;
 }

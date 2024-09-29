@@ -1,6 +1,6 @@
 {
   "name": "duckdb-tinyorm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "TinyORM for Duckdb, easy setup",
   "main": "node dist/index.js",
   "scripts": {

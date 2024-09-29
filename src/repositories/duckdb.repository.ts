@@ -7,8 +7,8 @@ import { bulkInsert, deleteTableData, dropTable, executeQuery, saveQueryToParque
 
 
 export class DuckDbRepository {
-    private db: Database;
-    private connection: Connection;
+    private db?: Database = undefined;
+    private connection?: Connection = undefined;
     // private statement: Statement;
     // private toDropTable: boolean = true;
 
@@ -38,7 +38,7 @@ export class DuckDbRepository {
 
     public connect(): void {
         if (this.isClosed) {
-            this.connection = this.db.connect();
+            this.connection = this.db?.connect();
             this.isClosed = false;
         }
     }
@@ -46,7 +46,7 @@ export class DuckDbRepository {
     public async createTableIfNotExists<T>(tableName: string, classType: new() => T): Promise<void> {
 
         return new Promise((resolve, reject) => {
-            this.connection.run(generateCreateTableStatement(tableName, classType), err => {
+            this.connection?.run(generateCreateTableStatement(tableName, classType), err => {
                 if (err) {
                     console.log('ERROR CREATING: ', err);
                     reject(err);

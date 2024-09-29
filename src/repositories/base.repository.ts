@@ -48,7 +48,7 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
     async findBy(entity: T, columns: string[]): Promise<T[]> {
         let query = `SELECT * FROM main.${this.classType.name} WHERE `;
         for (const column of columns) {
-            query += `${column}='${entity[column]}' AND `;
+            query += `${column}='${(entity as any)[column]}' AND `;
         }
         query = query.slice(0, query.length - 5);
         const result = await this.repository.executeQuery(query);
