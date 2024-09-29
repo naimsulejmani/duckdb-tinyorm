@@ -1,11 +1,12 @@
 {
   "name": "duckdb-tinyorm",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "TinyORM for Duckdb, easy setup",
   "main": "node dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "test": "npm run test",
     "dev": "nodemon --exec ts-node src/test.ts"
   },
