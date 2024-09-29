@@ -1,35 +1,34 @@
 # DuckDB Tiny ORM
 
 Usage:
+
 ```typescript
 
+import 'reflect-metadata';
 import { DuckDbRepository, Entity, Repository, DataTypeDecorator, BaseRepository, Id } from 'duckdb-tinyorm';
 
-import 'reflect-metadata';
-
 @Entity
-export class Amenity {
+export class Subject {
+
+    @Id()
+    @DataTypeDecorator('VARCHAR')
+    Id?: string = null;
 
     @DataTypeDecorator('VARCHAR')
     Name?: string = null;
 
-    @Id()
-    @DataTypeDecorator('VARCHAR')
-    Type?: string = null;
 
     @DataTypeDecorator('VARCHAR')
-    PropertyId?: string = null;
+    Description?: string = null;
 
-    @DataTypeDecorator('VARCHAR')
-    Color?: string = null;
 
     @DataTypeDecorator('INT')
     Year?: number = null;
 
 }
 
-@Repository(Amenity)
-class AmenityRepository extends BaseRepository<Amenity, string> {
+@Repository(Subject)
+class SubjectRepository extends BaseRepository<Subject, string> {
     constructor() {
         super(DuckDbRepository.getInstances());
     }
@@ -37,33 +36,32 @@ class AmenityRepository extends BaseRepository<Amenity, string> {
 
 
 async function test() {
-    const amenityRepository = new AmenityRepository();
+    const subjectRepository = new SubjectRepository();
 
-    const amenity = new Amenity();
-    amenity.Name = "Name1";
-    amenity.PropertyId = "1";
-    amenity.Type = "Type1";
-    amenity.Color = "Green";
-    amenity.Year = 2022;
+    const subject1 = new Subject();
+    subject1.Name = "Java Basic";
+    subject1.Description = "Java Basic";
+    subject1.Year = 2024;
+    subject1.Id = "JB"
 
 
-    const amenity1= new Amenity();
-    amenity1.Name = "Name2";
-    amenity1.PropertyId = "2";
-    amenity1.Type = "Type2";
-    amenity.Color = "Green";
-    amenity.Year = 2022;
+    const subject2 = new Subject();
+    subject2.Name = "Java OOP";
+    subject2.Description = "Java Object Oriented Programming";
+    subject2.Year = 2024;
+    subject2.Id = "OOP"
 
-    await amenityRepository.save(amenity);
-    await amenityRepository.save(amenity1);
-    const result = await amenityRepository.findAll();
+
+    await subjectRepository.save(subject1);
+    await subjectRepository.save(subject2);
+    const result = await subjectRepository.findAll();
     console.table(result);
-    const amenityFound:Amenity = await amenityRepository.findById("Type1");
-    console.info(amenityFound);
-    const amenityFound1: Amenity = await amenityRepository.findById("Type1");
-    console.info(amenityFound1);
+    const subjectFound1:Subject = await subjectRepository.findById("JB");
+    console.info(subjectFound1);
+    const subjectFound2: Subject = await subjectRepository.findById("OOP");
+    console.info(subjectFound2);
 
-    const amenities = await amenityRepository.findBy(amenity, ["Color"]);
+    const amenities = await subjectRepository.findBy({Year: 2024}, ["Year"]);
     console.table(amenities);
 }
 
