@@ -5,7 +5,7 @@
   "main": "node dist/index.js",
   "scripts": {
     "test": "npm run test",
-    "dev": "nodemon --exec ts-node src/index.ts"
+    "dev": "nodemon --exec ts-node src/test.ts"
   },
   "repository": {
     "type": "git",
