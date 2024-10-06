@@ -28,6 +28,13 @@ jobs:
       - name: Build the library
         run: npm run build
 
+      - name: Clear npm cache
+        run: npm cache clean --force
+
+
+      - name: Configure npm to use the registry
+        run: npm config set registry https://registry.npmjs.org/
+
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
