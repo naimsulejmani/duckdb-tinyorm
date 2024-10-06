@@ -5,6 +5,16 @@ import { mapToSQLFieldsValues } from '../helpers/mapping.helper';
 import { generateCreateTableStatement, generateInsertIntoStatement } from '../helpers/table-util.helper';
 import { bulkInsert, deleteTableData, dropTable, executeQuery, saveQueryToParquet, saveToParquet } from '../helpers/db.helper';
 
+export enum DuckDbLocation {
+    File = "",
+    Memory = ':memory:'
+}
+
+export interface DuckDbConfig {
+    name: string;
+    location: DuckDbLocation;
+    filename?: string;
+}
 
 export class DuckDbRepository {
     private db?: Database = undefined;
@@ -18,20 +28,37 @@ export class DuckDbRepository {
 
     // private readonly tableName: string;
     // private readonly fileName: string;
-    private static instance: DuckDbRepository;
+    private static instance: DuckDbRepository | null = null;
 
 
-    public static getInstances(): DuckDbRepository {
+
+    public static getInstances(duckdbConfig?: DuckDbConfig): DuckDbRepository {
+
+   
+        if (!duckdbConfig) {
+            duckdbConfig = {
+                name: 'default',
+                location: DuckDbLocation.Memory,
+                filename: undefined
+            };
+        }
+        if (duckdbConfig?.location == DuckDbLocation.File && !duckdbConfig.filename) {
+            throw new Error("Filepath for duckdb is missing");
+        }
+
+        const dbLocation = duckdbConfig.location == DuckDbLocation.File ? duckdbConfig.filename : DuckDbLocation.Memory.toString();
+        console.log(dbLocation)
+            
         if (!this.instance) {
-            this.instance = new DuckDbRepository();
+            this.instance = new DuckDbRepository(dbLocation);
 
         }
         return this.instance;
     }
 
-    protected constructor() {
+    protected constructor(location?: string) {
         if (!this.db) {
-            this.db = new Database(':memory:');
+            this.db = new Database(location ?? ':memory:');
             this.connect();
         }
     }
