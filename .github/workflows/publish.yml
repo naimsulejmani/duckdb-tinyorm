@@ -1,0 +1,43 @@
+name: Publish npm Package
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # This triggers the action only when a tag with the format 'vX.X.X' is pushed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22' # Use the version you prefer
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build the library
+        run: npm run build
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
+        if: startsWith(github.ref, 'refs/tags/v')
+
+      - name: Bump version
+        run: |
+          npm version patch
+          git config user.name "Naim Sulejmani"
+          git config user.email "naim.sulejmani@gmail.com"
+          git push origin HEAD --tags
+
