@@ -17,6 +17,18 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
         }
     }
 
+    async removeById(id: Tid): Promise<T> {
+       
+        const deletedItem = await this.findById(id);
+        
+        const query = `DELETE FROM main.${this.classType.name} WHERE ${this.primaryColumnId}='${id}'`;
+
+        await this.repository.executeQuery(query);
+
+        return deletedItem;
+       
+    }
+
     async save(entity: T): Promise<T> {
         console.log('Saving entity:', entity);
         console.log('Class type:', this.classType.name);
@@ -40,12 +52,17 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
         // Get the property names from the class using reflection
         if (!this.primaryColumnId)
             this.primaryColumnId = getPrimaryId(this.classType);
+
+        if (!this.primaryColumnId) {
+            throw new Error("The table doesn't have any primary key declared!");
+        }
+
         const query = `SELECT * FROM main.${this.classType.name} WHERE ${this.primaryColumnId}='${id}'`;
         const result = await this.repository.executeQuery(query)
         return result?.length ? result[0] : undefined;
     }
 
-    async findBy(entity: T, columns: string[]): Promise<T[]> {
+    async findBy(entity: Partial<T>, columns: string[]): Promise<T[]> {
         let query = `SELECT * FROM main.${this.classType.name} WHERE `;
         for (const column of columns) {
             query += `${column}='${(entity as any)[column]}' AND `;
