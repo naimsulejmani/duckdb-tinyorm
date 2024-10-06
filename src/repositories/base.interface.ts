@@ -3,4 +3,5 @@ export interface IRepository<T, Tid> {
     findAll(): Promise<T[]>;
     findById(id: Tid): Promise<T>
     findBy(entity: T, columns: string[]): Promise<T[]>
+    removeById(id: Tid): Promise<T>
 }
