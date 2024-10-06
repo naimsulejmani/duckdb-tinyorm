@@ -3,34 +3,45 @@
 Usage:
 
 ```typescript
-
 import 'reflect-metadata';
-import { DuckDbRepository, Entity, Repository, DataTypeDecorator, BaseRepository, Id } from 'duckdb-tinyorm';
+import { DuckDbRepository, Entity, Repository, DataTypeDecorator, BaseRepository, Id ,DuckDbLocation, DuckDbConfig } from 'duckdb-tinyorm';
+
+
+
+//create instance in memory or use File, if File is specfied need to specify the filename
+const duckDbRepository: DuckDbRepository = DuckDbRepository.getInstances({name: 'default', location: DuckDbLocation.Memory, filename: undefined})
 
 @Entity
 export class Subject {
 
+    constructor(id: string = "", name?: string, description?: string, year: number = (new Date()).getFullYear()) {
+        this.Id = id;
+        this.Name = name;
+        this.Description = description;
+        this.Year = year;
+    }
+
     @Id()
     @DataTypeDecorator('VARCHAR')
-    Id?: string = null;
+    Id: string ;
 
     @DataTypeDecorator('VARCHAR')
-    Name?: string = null;
+    Name?: string;
 
 
     @DataTypeDecorator('VARCHAR')
-    Description?: string = null;
+    Description?: string;
 
 
     @DataTypeDecorator('INT')
-    Year?: number = null;
+    Year: number;
 
 }
 
 @Repository(Subject)
 class SubjectRepository extends BaseRepository<Subject, string> {
     constructor() {
-        super(DuckDbRepository.getInstances());
+        super(duckDbRepository);
     }
 }
 
@@ -56,12 +67,14 @@ async function test() {
     await subjectRepository.save(subject2);
     const result = await subjectRepository.findAll();
     console.table(result);
-    const subjectFound1:Subject = await subjectRepository.findById("JB");
+    const subjectFound1: Subject = await subjectRepository.findById("JB");
     console.info(subjectFound1);
     const subjectFound2: Subject = await subjectRepository.findById("OOP");
     console.info(subjectFound2);
 
-    const amenities = await subjectRepository.findBy({Year: 2024}, ["Year"]);
+    await subjectRepository.removeById("JB");
+
+    const amenities = await subjectRepository.findBy({ Year: 2024 }, ["Year"]);
     console.table(amenities);
 }
 
