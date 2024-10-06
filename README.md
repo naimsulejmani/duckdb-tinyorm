@@ -49,28 +49,25 @@ class SubjectRepository extends BaseRepository<Subject, string> {
 async function test() {
     const subjectRepository = new SubjectRepository();
 
-    const subject1 = new Subject();
-    subject1.Name = "Java Basic";
-    subject1.Description = "Java Basic";
-    subject1.Year = 2024;
-    subject1.Id = "JB"
+    const subject1 = new Subject('JB', "Java Basic", "Java Basic", 2024);
+    const subject2 = new Subject('OOP', "Java OOP", "Java Object Oriented Programming", 2024);
 
 
-    const subject2 = new Subject();
-    subject2.Name = "Java OOP";
-    subject2.Description = "Java Object Oriented Programming";
-    subject2.Year = 2024;
-    subject2.Id = "OOP"
-
-
+    //save records (as for now just insert a new record)
     await subjectRepository.save(subject1);
     await subjectRepository.save(subject2);
+
+    //find all records
     const result = await subjectRepository.findAll();
     console.table(result);
+
+    //find records by primary key
     const subjectFound1: Subject = await subjectRepository.findById("JB");
     console.info(subjectFound1);
     const subjectFound2: Subject = await subjectRepository.findById("OOP");
     console.info(subjectFound2);
+
+    //delete one record by primary key
 
     await subjectRepository.removeById("JB");
 

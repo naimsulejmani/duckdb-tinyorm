@@ -45,18 +45,8 @@ class SubjectRepository extends BaseRepository<Subject, string> {
 async function test() {
     const subjectRepository = new SubjectRepository();
 
-    const subject1 = new Subject();
-    subject1.Name = "Java Basic";
-    subject1.Description = "Java Basic";
-    subject1.Year = 2024;
-    subject1.Id = "JB"
-
-
-    const subject2 = new Subject();
-    subject2.Name = "Java OOP";
-    subject2.Description = "Java Object Oriented Programming";
-    subject2.Year = 2024;
-    subject2.Id = "OOP"
+    const subject1 = new Subject('JB', "Java Basic", "Java Basic", 2024);
+    const subject2 = new Subject('OOP', "Java OOP", "Java Object Oriented Programming", 2024);
 
 
     await subjectRepository.save(subject1);
