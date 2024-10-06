@@ -28,6 +28,11 @@ jobs:
       - name: Build the library
         run: npm run build
 
+      - name: Check npm token
+        run: echo "NPM Token: $NODE_AUTH_TOKEN" # Warning: Sensitive information!
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
