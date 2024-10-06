@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
-    "test": "npm run test",
+    "test": "echo 'Test not implemented'",
     "dev": "nodemon --exec ts-node src/test.ts",
     "start": "node dist/index.js"
   },
@@ -31,6 +31,7 @@
     "@types/node": "^22.7.4",
     "dotenv": "^16.4.5",
     "duckdb": "^1.1.0",
+    "duckdb-tinyorm": "^1.0.10",
     "globals": "^15.9.0",
     "nodemon": "^3.1.7",
     "npm": "^10.8.3",
@@ -40,4 +41,3 @@
     "typescript": "^5.6.2"
   }
 }
-
