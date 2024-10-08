@@ -15,6 +15,9 @@
     "type": "git",
     "url": "git+https://github.com/naimsulejmani/duckdb-tinyorm.git"
   },
+  "publishConfig": {
+    "registry": "https://github.com/naimsulejmani/duckdb-tinyorm.git"
+  },
   "keywords": [
     "duckdb",
     "orm",
