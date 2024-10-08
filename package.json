@@ -1,6 +1,6 @@
 {
   "name": "duckdb-tinyorm",
-  "version": "1.0.32",
+  "version": "1.0.31",
   "description": "TinyORM for Duckdb, easy setup",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,7 @@
     "url": "git+https://github.com/naimsulejmani/duckdb-tinyorm.git"
   },
   "publishConfig": {
-    "registry": "https://github.com/naimsulejmani/duckdb-tinyorm.git"
+    "registry": "https://npm.pkg.github.com"
   },
   "keywords": [
     "duckdb",
