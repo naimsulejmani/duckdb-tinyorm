@@ -11,6 +11,9 @@
     "dev": "nodemon --exec ts-node src/test.ts",
     "start": "node dist/index.js"
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/naimsulejmani/duckdb-tinyorm.git"
