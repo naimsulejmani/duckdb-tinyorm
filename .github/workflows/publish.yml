@@ -22,7 +22,7 @@ jobs:
           always-auth: true
 
       - name: Configure npm to use GitHub Packages registry
-        run: echo "/naimsulejmani:registry=https://npm.pkg.github.com" > ~/.npmrc
+        run: echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_TOKEN}}" > ~/.npmrc
 
       - name: Install dependencies
         run: npm install
