@@ -30,6 +30,14 @@ jobs:
       - name: Build the library
         run: npm run build
 
+      - name: Commit build artifacts
+        run: |
+          git config user.name "Naim Sulejmani"
+          git config user.email "naim.sulejmani@gmail.com"
+          git add .
+          git commit -m "chore: commit build artifacts"
+        continue-on-error: true  # Allow it to continue if there's nothing to commit
+
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -39,7 +47,4 @@ jobs:
       - name: Bump version
         run: |
           npm version patch
-          git config user.name "Naim Sulejmani"
-          git config user.email "naim.sulejmani@gmail.com"
           git push origin HEAD --tags
-
