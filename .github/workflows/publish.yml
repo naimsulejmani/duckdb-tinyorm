@@ -18,6 +18,8 @@ jobs:
         with:
           node-version: '22' # Use the version you prefer
           cache: 'npm'
+          registry-url: "https://registry.npmjs.org"
+          always-auth: true
 
       - name: Install dependencies
         run: npm install
