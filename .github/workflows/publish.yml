@@ -19,7 +19,9 @@ jobs:
           node-version: '22' # Use the version you prefer
           cache: 'npm'
           registry-url: "https://registry.npmjs.org"
-          always-auth: true
+
+      - name: Configure npm to use GitHub Packages registry
+        run: echo "//npm.pkg.github.com/:_authToken=\${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
       - name: Install dependencies
         run: npm install
