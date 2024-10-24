@@ -18,6 +18,13 @@ jobs:
         with:
           node-version: '22' # Use the version you prefer
           cache: 'npm'
+          registry-url: "https://registry.npmjs.org"
+          always-auth: true
+
+      - name: Authenticate to npm
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
 
       - name: Install dependencies
         run: npm install
@@ -33,11 +40,3 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish
         if: startsWith(github.ref, 'refs/tags/v')
-
-      - name: Bump version
-        run: |
-          npm version patch
-          git config user.name "Naim Sulejmani"
-          git config user.email "naim.sulejmani@gmail.com"
-          git push origin HEAD --tags
-
