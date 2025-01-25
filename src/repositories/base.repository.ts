@@ -17,6 +17,19 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
         }
     }
 
+    public async init(): Promise<void> {
+        await this.initializeTable();
+    }
+
+    private async initializeTable() {
+        try {
+            await this.repository.createTableIfNotExists(this.classType.name, this.classType);
+            console.log(`Table ${this.classType.name} is created successfully!`);
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
     async removeById(id: Tid): Promise<T> {
        
         const deletedItem = await this.findById(id);
@@ -30,11 +43,11 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
     }
 
     async save(entity: T): Promise<T> {
-        console.log('Saving entity:', entity);
-        console.log('Class type:', this.classType.name);
+        // console.log('Saving entity:', entity);
+        // console.log('Class type:', this.classType.name);
 
-        // Create the table if it doesn't exist
-        await this.repository.createTableIfNotExists(this.classType.name, this.classType);
+        // // Create the table if it doesn't exist
+        // await this.repository.createTableIfNotExists(this.classType.name, this.classType);
 
         // Save the entity to DuckDB 
         await this.repository.saveToDuckDB(this.classType.name, this.classType, [entity]);

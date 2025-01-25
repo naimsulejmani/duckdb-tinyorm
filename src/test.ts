@@ -44,14 +44,16 @@ class SubjectRepository extends BaseRepository<Subject, string> {
 
 async function test() {
     const subjectRepository = new SubjectRepository();
-
+    await subjectRepository.init();
+    let result = await subjectRepository.findAll();
+    console.log("RESULT => ", result)
     const subject1 = new Subject('JB', "Java Basic", "Java Basic", 2024);
     const subject2 = new Subject('OOP', "Java OOP", "Java Object Oriented Programming", 2024);
 
 
     await subjectRepository.save(subject1);
     await subjectRepository.save(subject2);
-    const result = await subjectRepository.findAll();
+    result = await subjectRepository.findAll();
     console.table(result);
     const subjectFound1: Subject = await subjectRepository.findById("JB");
     console.info(subjectFound1);

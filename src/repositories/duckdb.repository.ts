@@ -72,6 +72,7 @@ export class DuckDbRepository {
 
     public async createTableIfNotExists<T>(tableName: string, classType: new() => T): Promise<void> {
 
+        if(this.tables.get(tableName)) return;
         return new Promise((resolve, reject) => {
             this.connection?.run(generateCreateTableStatement(tableName, classType), err => {
                 if (err) {
@@ -79,6 +80,7 @@ export class DuckDbRepository {
                     reject(err);
                 } else {
                     // console.info('DuckDB table main.' + tableName + ' was created or already exists!');
+                    this.tables.set(tableName, true);
                     resolve();
                 }
             });
@@ -94,9 +96,6 @@ export class DuckDbRepository {
     }
 
     public async pushToDuckDb<T>(tableName: string, classType: new() => T, data?: T[]) {
-        if (!this.tables.get(tableName)) {
-            this.tables.set(tableName, false);
-        }
         await this.saveToDuckDB(tableName, classType, data);
     }
 
@@ -112,13 +111,12 @@ export class DuckDbRepository {
         const fileName = `${name}.parquet`;
         const tableName = `main.${name}`;
         await saveToParquet(this.connection, fileName, tableName, mainFolder);
-        this.tables.set(name, true);
+
     }
 
     public async saveToParquetByName(parquetFileName: string, duckDBTableName: string, mainFolder?: string) {
         const fileName = `${parquetFileName}.parquet`;
         await saveToParquet(this.connection, fileName, `main.${duckDBTableName}`, mainFolder);
-        this.tables.set(parquetFileName, true);
     }
 
 
