@@ -97,3 +97,69 @@ export async function saveQueryToParquet(connection?: Connection, fileName?: str
         });
     });
 }
+
+// Add these export helper functions
+
+export async function exportToCSV(connection: Connection, source: string, fileName: string, options?: { header?: boolean, delimiter?: string }): Promise<void> {
+    const header = options?.header !== false ? 'HEADER' : 'NO_HEADER';
+    const delimiter = options?.delimiter ?? ',';
+
+    return new Promise<void>((resolve, reject) => {
+        const isQuery = source.trim().toUpperCase().startsWith('SELECT');
+        const copyCommand = isQuery
+            ? `COPY (${source}) TO '${fileName}' (FORMAT CSV, ${header}, DELIMITER '${delimiter}')`
+            : `COPY ${source} TO '${fileName}' (FORMAT CSV, ${header}, DELIMITER '${delimiter}')`;
+
+        connection?.run(copyCommand, (err) => {
+            if (err) {
+                console.error('CSV export failed:', err);
+                reject(err);
+            } else {
+                console.log(`Exported to CSV: ${fileName}`);
+                resolve();
+            }
+        });
+    });
+}
+
+export async function exportToJSON(connection: Connection, source: string, fileName: string, options?: { pretty?: boolean }): Promise<void> {
+    const formatOption = options?.pretty ? 'FORMAT JSON, ARRAY TRUE' : 'FORMAT JSON';
+
+    return new Promise<void>((resolve, reject) => {
+        const isQuery = source.trim().toUpperCase().startsWith('SELECT');
+        const copyCommand = isQuery
+            ? `COPY (${source}) TO '${fileName}' (${formatOption})`
+            : `COPY ${source} TO '${fileName}' (${formatOption})`;
+
+        connection?.run(copyCommand, (err) => {
+            if (err) {
+                console.error('JSON export failed:', err);
+                reject(err);
+            } else {
+                console.log(`Exported to JSON: ${fileName}`);
+                resolve();
+            }
+        });
+    });
+}
+
+export async function exportToParquet(connection: Connection, source: string, fileName: string, options?: { compression?: string }): Promise<void> {
+    const compression = options?.compression ?? 'ZSTD'; // Default to ZSTD compression
+
+    return new Promise<void>((resolve, reject) => {
+        const isQuery = source.trim().toUpperCase().startsWith('SELECT');
+        const copyCommand = isQuery
+            ? `COPY (${source}) TO '${fileName}' (FORMAT PARQUET, COMPRESSION ${compression})`
+            : `COPY ${source} TO '${fileName}' (FORMAT PARQUET, COMPRESSION ${compression})`;
+
+        connection?.run(copyCommand, (err) => {
+            if (err) {
+                console.error('Parquet export failed:', err);
+                reject(err);
+            } else {
+                console.log(`Exported to Parquet: ${fileName}`);
+                resolve();
+            }
+        });
+    });
+}
