@@ -3,6 +3,7 @@ import { Transaction } from './repositories/transaction';
 import { DuckDbLocation, DuckDbRepository } from './repositories/duckdb.repository';
 import { Column, DataTypeDecorator, Entity, Id, Repository } from './constants/data-type.decorator';
 import { BaseRepository } from './repositories/base.repository';
+import { getClassName } from './helpers/table-util.helper';
 
 // Create instance in memory or use File
 const duckDbRepository: DuckDbRepository = DuckDbRepository.getInstances({
@@ -139,6 +140,37 @@ async function test() {
         }
 
         // If we get here, the transaction will be committed
+    });
+
+    // Example usage in test.ts or another file
+
+    // Export a table to CSV
+    await subjectRepository.exportData({
+        format: 'csv',
+        fileName: 'subjects.csv',
+        csvOptions: {
+            header: true,
+            delimiter: ','
+        }
+    });
+
+    // Export query results to JSON
+    const query = `SELECT * FROM main.subjects WHERE Year = 2024`;
+    await subjectRepository.exportQuery(query, {
+        format: 'json',
+        fileName: 'subjects-2024.json',
+        jsonOptions: {
+            pretty: true
+        }
+    });
+
+    // Export all data to Parquet using DuckDbRepository directly
+    await duckDbRepository.exportTable('subjects', {
+        format: 'parquet',
+        fileName: 'subjects.parquet',
+        parquetOptions: {
+            compression: 'ZSTD'
+        }
     });
 }
 

@@ -4,13 +4,14 @@ import {
     Column, ColumnOptions, NotNull, Default, Check, AutoIncrement, TableOptions
 } from "./constants/data-type.decorator";
 import { BaseRepository } from "./repositories/base.repository";
-import { DuckDbRepository, DuckDbConfig, DuckDbLocation } from './repositories/duckdb.repository';
+import { DuckDbRepository, DuckDbConfig, DuckDbLocation, ExportOptions } from './repositories/duckdb.repository';
 import { IRepository } from './repositories/base.interface';
 import { getClassName, getTableName, getPrimaryId, generateCreateTableStatement, generateInsertIntoStatement } from './helpers/table-util.helper';
 import { QueryBuilder } from './query/query-builder';
 import { Transaction } from './repositories/transaction';
 import { Page, Pageable } from './pagination/pagination';
 import { Migration, MigrationRunner, MigrationOptions } from './migration/migration';
+import { ConnectionError } from './errors/orm-errors';
 import {
     OrmBaseError, EntityNotFoundError, PrimaryKeyError, TableCreationError,
     QueryExecutionError, TransactionError, ValidationError, MigrationError
@@ -52,11 +53,15 @@ export {
 
     // Error class exports
     OrmBaseError,
+    ConnectionError,
     EntityNotFoundError,
     PrimaryKeyError,
     TableCreationError,
     QueryExecutionError,
     TransactionError,
     ValidationError,
-    MigrationError
+    MigrationError,
+
+    // New export
+    ExportOptions
 };
