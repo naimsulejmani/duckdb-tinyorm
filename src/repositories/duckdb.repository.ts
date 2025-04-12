@@ -266,6 +266,28 @@ export class DuckDbRepository {
         }
     }
 
+    public async dropSequence(sequenceName: string): Promise<void> {
+        try {
+            const query = `DROP SEQUENCE IF EXISTS ${sequenceName}`;
+            await this.executeQuery(query);
+            console.log(`Sequence ${sequenceName} dropped successfully`);
+        } catch (err) {
+            console.error(`ERROR DROPPING SEQUENCE: `, err);
+            throw err;
+        }
+    }
+
+    public async sequenceExists(sequenceName: string): Promise<boolean> {
+        try {
+            const query = `SELECT sequence_name FROM information_schema.sequences WHERE sequence_name = '${sequenceName}'`;
+            const result = await this.executeQuery(query);
+            return result && result.length > 0;
+        } catch (err) {
+            console.error(`ERROR CHECKING SEQUENCE: `, err);
+            return false;
+        }
+    }
+
 }
 export interface ExportOptions {
     format: 'csv' | 'json' | 'parquet';

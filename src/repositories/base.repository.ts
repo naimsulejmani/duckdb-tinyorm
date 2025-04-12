@@ -209,8 +209,47 @@ export class BaseRepository<T extends object, Tid> implements IRepository<T, Tid
     }
 
     async removeAll(): Promise<void> {
+        // First delete all data from the table
         const query = `DELETE FROM main.${this.tableName}`;
         await this.repository.executeQuery(query);
+
+        // Then check for and drop any associated sequences
+        await this.dropAssociatedSequences();
+    }
+
+    // Add new helper method to drop associated sequences
+    private async dropAssociatedSequences(): Promise<void> {
+        // Retrieve sequences from metadata
+        const sequences = Reflect.getMetadata('Sequences', this.classType) || {};
+
+        // Drop each sequence if it exists
+        for (const [propertyName, sequenceName] of Object.entries(sequences)) {
+            try {
+                // Check if the sequence exists before trying to drop it
+                const checkSequenceQuery = `SELECT sequence_name FROM information_schema.sequences WHERE sequence_name = '${sequenceName}'`;
+                const sequenceExists = await this.repository.executeQuery(checkSequenceQuery);
+
+                if (sequenceExists && sequenceExists.length > 0) {
+                    const dropSequenceQuery = `DROP SEQUENCE IF EXISTS ${sequenceName}`;
+                    await this.repository.executeQuery(dropSequenceQuery);
+                    console.log(`Dropped sequence ${sequenceName} for table ${this.tableName}`);
+                }
+
+                // Optionally recreate the sequence if needed
+                // This is useful if you want to reset the counter to start from initial value
+                const autoIncrement = Reflect.getMetadata('AutoIncrement', this.classType.prototype, propertyName);
+                const isPrimaryKey = Reflect.getMetadata('PrimaryKey', this.classType.prototype, propertyName);
+
+                if (autoIncrement && isPrimaryKey) {
+                    const createSequenceStatement = `CREATE SEQUENCE IF NOT EXISTS ${sequenceName} START 1`;
+                    await this.repository.executeQuery(createSequenceStatement);
+                    console.log(`Recreated sequence ${sequenceName} for table ${this.tableName}`);
+                }
+            } catch (error) {
+                console.error(`Error managing sequence ${sequenceName}:`, error);
+                // Optionally throw or continue based on your error handling strategy
+            }
+        }
     }
 
     async createQueryBuilder(): Promise<QueryBuilder<T>> {
