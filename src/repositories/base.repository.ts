@@ -2,10 +2,15 @@ import 'reflect-metadata';
 import { DuckDbRepository } from './duckdb.repository';
 import { getPrimaryId } from '../helpers/table-util.helper';
 import { IRepository } from './base.interface';
+import { QueryBuilder } from '../query/query-builder';
+import { Transaction } from './transaction';
+import { Page, Pageable } from '../pagination/pagination';
+import { EntityNotFoundError, PrimaryKeyError, QueryExecutionError, TransactionError } from '../errors/orm-errors';
 
-
-export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
+// Add 'extends object' constraint to T
+export class BaseRepository<T extends object, Tid> implements IRepository<T, Tid> {
     protected classType: new() => T;
+    protected tableName: string;
     private primaryColumnId = '';
 
     constructor(protected repository: DuckDbRepository) {
@@ -15,6 +20,9 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
         if (!this.classType) {
             throw new Error('Class type is not defined!');
         }
+
+        // Get the table name from metadata or use the class name
+        this.tableName = Reflect.getMetadata('TableName', this.classType) || this.classType.name;
     }
 
     public async init(): Promise<void> {
@@ -34,7 +42,7 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
        
         const deletedItem = await this.findById(id);
         
-        const query = `DELETE FROM main.${this.classType.name} WHERE ${this.primaryColumnId}='${id}'`;
+        const query = `DELETE FROM main.${this.tableName} WHERE ${this.primaryColumnId}='${id}'`;
 
         await this.repository.executeQuery(query);
 
@@ -55,10 +63,23 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
         return entity;
     }
 
+    async saveAll(entities: T[]): Promise<T[]> {
+        if (!entities.length) return [];
+        await this.repository.saveToDuckDB(this.classType.name, this.classType, entities);
+        return entities;
+    }
+
+    async insert(entity: T): Promise<T> {
+        return this.save(entity);
+    }
+
+    async bulkInsert(entities: T[]): Promise<T[]> {
+        return this.saveAll(entities);
+    }
+
     async findAll(): Promise<T[]> {
-        const query = `SELECT * FROM main.${this.classType.name}`;
-        const result = await this.repository.executeQuery(query);
-        return result
+        const query = `SELECT * FROM main.${this.tableName}`;
+        return this.repository.executeQuery(query);
     }
 
     async findById(id: Tid): Promise<T> {
@@ -67,21 +88,108 @@ export class BaseRepository<T, Tid> implements IRepository<T,Tid> {
             this.primaryColumnId = getPrimaryId(this.classType);
 
         if (!this.primaryColumnId) {
+            throw new PrimaryKeyError("The table doesn't have any primary key declared!");
+        }
+
+        const query = `SELECT * FROM main.${this.tableName} WHERE ${this.primaryColumnId}='${id}'`;
+        try {
+            const result = await this.repository.executeQuery(query);
+            if (!result?.length) {
+                throw new EntityNotFoundError(this.classType.name, id);
+            }
+
+            return result[0];
+        } catch (error) {
+            if (error instanceof EntityNotFoundError) {
+                throw error;
+            }
+            throw new QueryExecutionError(query, error as Error);
+        }
+    }
+
+    async existsById(id: Tid): Promise<boolean> {
+        if (!this.primaryColumnId) {
+            this.primaryColumnId = getPrimaryId(this.classType);
+        }
+
+        if (!this.primaryColumnId) {
             throw new Error("The table doesn't have any primary key declared!");
         }
 
-        const query = `SELECT * FROM main.${this.classType.name} WHERE ${this.primaryColumnId}='${id}'`;
-        const result = await this.repository.executeQuery(query)
-        return result?.length ? result[0] : undefined;
+        const query = `SELECT COUNT(*) as count FROM main.${this.tableName} WHERE ${this.primaryColumnId}='${id}'`;
+        const result = await this.repository.executeQuery(query);
+        return result[0].count > 0;
+    }
+
+    async findByIdOrThrow(id: Tid): Promise<T> {
+        const entity = await this.findById(id);
+        if (!entity) {
+            throw new Error(`Entity with id ${id} not found`);
+        }
+        return entity;
+    }
+
+    async findWithPagination(pageable: Pageable): Promise<Page<T>> {
+        const countQuery = `SELECT COUNT(*) as count FROM main.${this.tableName}`;
+        const countResult = await this.repository.executeQuery(countQuery);
+
+        // Convert BigInt to Number before using in Math.ceil
+        const totalElements = Number(countResult[0].count);
+
+        const query = `SELECT * FROM main.${this.tableName} LIMIT ${pageable.size} OFFSET ${pageable.page * pageable.size}`;
+        const content = await this.repository.executeQuery(query);
+
+        return {
+            content,
+            pageable: {
+                page: pageable.page,
+                size: pageable.size
+            },
+            totalElements,
+            totalPages: Math.ceil(totalElements / pageable.size)
+        };
     }
 
     async findBy(entity: Partial<T>, columns: string[]): Promise<T[]> {
-        let query = `SELECT * FROM main.${this.classType.name} WHERE `;
+        let query = `SELECT * FROM main.${this.tableName} WHERE `;
         for (const column of columns) {
             query += `${column}='${(entity as any)[column]}' AND `;
         }
         query = query.slice(0, query.length - 5);
         const result = await this.repository.executeQuery(query);
         return result;
+    }
+
+    async removeAll(): Promise<void> {
+        const query = `DELETE FROM main.${this.tableName}`;
+        await this.repository.executeQuery(query);
+    }
+
+    async createQueryBuilder(): Promise<QueryBuilder<T>> {
+        return new QueryBuilder<T>(this.classType);
+    }
+
+    // Support for transactions
+    async withTransaction<R>(callback: (transaction: Transaction) => Promise<R>): Promise<R> {
+        const transaction = this.repository.createTransaction();
+        try {
+            await transaction.begin();
+            const result = await callback(transaction);
+            await transaction.commit();
+            return result;
+        } catch (error) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+                throw new TransactionError('rollback', rollbackError as Error);
+            }
+            throw new TransactionError('execution', error as Error);
+        }
+    }
+
+    toEntity(data: Record<string, any>): T {
+        const entity = new this.classType();
+        Object.assign(entity, data);
+        return entity;
     }
 }

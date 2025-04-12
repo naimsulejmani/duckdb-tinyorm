@@ -4,6 +4,7 @@ import { Connection, Database } from 'duckdb';
 import { mapToSQLFieldsValues } from '../helpers/mapping.helper';
 import { generateCreateTableStatement, generateInsertIntoStatement } from '../helpers/table-util.helper';
 import { bulkInsert, deleteTableData, dropTable, executeQuery, saveQueryToParquet, saveToParquet } from '../helpers/db.helper';
+import { Transaction } from './transaction';  // Add this import
 
 export enum DuckDbLocation {
     File = "",
@@ -70,21 +71,60 @@ export class DuckDbRepository {
         }
     }
 
-    public async createTableIfNotExists<T>(tableName: string, classType: new() => T): Promise<void> {
+    // Fix the sequence creation logic
 
-        if(this.tables.get(tableName)) return;
-        return new Promise((resolve, reject) => {
-            this.connection?.run(generateCreateTableStatement(tableName, classType), err => {
-                if (err) {
-                    console.log('ERROR CREATING: ', err);
-                    reject(err);
-                } else {
-                    // console.info('DuckDB table main.' + tableName + ' was created or already exists!');
-                    this.tables.set(tableName, true);
-                    resolve();
+    public async createTableIfNotExists<T>(tableName: string, classType: new() => T): Promise<void> {
+        try {
+            // Get the actual table name from metadata if available
+            const actualTableName = Reflect.getMetadata('TableName', classType) || tableName;
+
+            // First, extract sequences from the create table statement - we need to create them separately
+            const sequences: Record<string, string> = {};
+
+            // Extract auto-increment columns and their types
+            const instance = new classType();
+            const propertyNames = Object.getOwnPropertyNames(instance);
+
+            for (const propertyName of propertyNames) {
+                const autoIncrement = Reflect.getMetadata('AutoIncrement', classType.prototype, propertyName);
+                if (autoIncrement) {
+                    const sequenceName = `seq_${actualTableName}_${propertyName}`;
+                    sequences[propertyName] = sequenceName;
                 }
-            });
-        });
+            }
+
+            // Create sequences first
+            for (const propertyName in sequences) {
+                const sequenceName = sequences[propertyName];
+                const createSequenceStatement = `CREATE SEQUENCE IF NOT EXISTS ${sequenceName};`;
+
+                try {
+                    // Execute sequence creation first, completely separate from table creation
+                    await this.executeQuery(createSequenceStatement);
+                    console.log(`Sequence ${sequenceName} is created successfully!`);
+                } catch (err) {
+                    console.error(`ERROR CREATING SEQUENCE: `, err);
+                    throw err;
+                }
+            }
+
+            // Store sequences in metadata for later use during inserts
+            Reflect.defineMetadata('Sequences', sequences, classType);
+
+            // Now create the table with references to the already-created sequences
+            const createTableStatement = generateCreateTableStatement(actualTableName, classType);
+
+            try {
+                await this.executeQuery(createTableStatement);
+                console.log(`Table ${actualTableName} is created successfully!`);
+            } catch (err) {
+                console.error(`ERROR CREATING TABLE: `, err);
+                throw err;
+            }
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
     }
 
     public async getDuckDbExtension(extension_name: string): Promise<any[]> {
@@ -101,10 +141,15 @@ export class DuckDbRepository {
 
     public async saveToDuckDB<T>(tableName: string, classType: new() => T, data?: T[]) {
         if (!(data?.length)) return;
-        await this.createTableIfNotExists<T>(tableName, classType);
-        const query = data.map(item => mapToSQLFieldsValues(item, classType)).join(', ');
-        await bulkInsert(this.connection, generateInsertIntoStatement(tableName, classType) + query);
 
+        // Get the actual table name from metadata if available
+        const actualTableName = Reflect.getMetadata('TableName', classType) || tableName;
+
+        await this.createTableIfNotExists<T>(actualTableName, classType);
+        const query = data.map(item => mapToSQLFieldsValues(item, classType)).join(', ');
+
+        // Use actualTableName instead of tableName
+        await bulkInsert(this.connection, generateInsertIntoStatement(actualTableName, classType) + query);
     }
 
     public async saveToParquet(name: string, mainFolder?: string) {
@@ -146,6 +191,14 @@ export class DuckDbRepository {
     public async saveQueryToParquet(name: string, query: string, folder: string) {
         const fileName = `${name}.parquet`;
         await saveQueryToParquet(this.connection, fileName, query, folder);
+    }
+
+    // Add this method to the DuckDbRepository class
+    public createTransaction(): Transaction {
+        if (!this.connection) {
+            this.connect();
+        }
+        return new Transaction(this.connection!);
     }
 
 }

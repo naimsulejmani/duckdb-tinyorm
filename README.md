@@ -1,19 +1,20 @@
 # DuckDB Tiny ORM
 
-Usage:
+## Basic Usage:
 
 ```typescript
 import 'reflect-metadata';
-import { DuckDbRepository, Entity, Repository, DataTypeDecorator, BaseRepository, Id ,DuckDbLocation, DuckDbConfig } from 'duckdb-tinyorm';
+import { DuckDbRepository, Entity, Repository, DataTypeDecorator, BaseRepository, Id, DuckDbLocation, DuckDbConfig } from 'duckdb-tinyorm';
 
-
-
-//create instance in memory or use File, if File is specfied need to specify the filename
-const duckDbRepository: DuckDbRepository = DuckDbRepository.getInstances({name: 'default', location: DuckDbLocation.Memory, filename: undefined})
+// Create instance in memory or use File
+const duckDbRepository: DuckDbRepository = DuckDbRepository.getInstances({
+  name: 'default', 
+  location: DuckDbLocation.Memory, 
+  filename: undefined
+});
 
 @Entity
 export class Subject {
-
     constructor(id: string = "", name?: string, description?: string, year: number = (new Date()).getFullYear()) {
         this.Id = id;
         this.Name = name;
@@ -23,19 +24,16 @@ export class Subject {
 
     @Id()
     @DataTypeDecorator('VARCHAR')
-    Id: string ;
+    Id: string;
 
     @DataTypeDecorator('VARCHAR')
     Name?: string;
 
-
     @DataTypeDecorator('VARCHAR')
     Description?: string;
 
-
     @DataTypeDecorator('INT')
     Year: number;
-
 }
 
 @Repository(Subject)
@@ -45,36 +43,58 @@ class SubjectRepository extends BaseRepository<Subject, string> {
     }
 }
 
-
 async function test() {
     const subjectRepository = new SubjectRepository();
     await subjectRepository.init();
 
+    // Save entities
     const subject1 = new Subject('JB', "Java Basic", "Java Basic", 2024);
     const subject2 = new Subject('OOP', "Java OOP", "Java Object Oriented Programming", 2024);
-
-
-    //save records (as for now just insert a new record)
     await subjectRepository.save(subject1);
     await subjectRepository.save(subject2);
 
-    //find all records
+    // Find all records
     const result = await subjectRepository.findAll();
     console.table(result);
 
-    //find records by primary key
-    const subjectFound1: Subject = await subjectRepository.findById("JB");
-    console.info(subjectFound1);
-    const subjectFound2: Subject = await subjectRepository.findById("OOP");
-    console.info(subjectFound2);
+    // Find by ID
+    const subjectFound = await subjectRepository.findById("JB");
+    console.info(subjectFound);
 
-    //delete one record by primary key
-
+    // Delete by ID
     await subjectRepository.removeById("JB");
 
-    const amenities = await subjectRepository.findBy({ Year: 2024 }, ["Year"]);
-    console.table(amenities);
+    // Find with criteria
+    const subjects = await subjectRepository.findBy({ Year: 2024 }, ["Year"]);
+    console.table(subjects);
+    
+    // Use pagination
+    const page = await subjectRepository.findWithPagination({ page: 0, size: 10 });
+    console.log(`Found ${page.totalElements} subjects across ${page.totalPages} pages`);
+    
+    // Use query builder
+    const queryBuilder = await subjectRepository.createQueryBuilder();
+    const customQuery = queryBuilder
+        .select(['Id', 'Name'])
+        .where('Year = 2024')
+        .orderBy('Name', 'ASC')
+        .limit(5)
+        .getQuery();
+    const customResults = await duckDbRepository.executeQuery(customQuery);
+    console.table(customResults);
+    
+    // Use transactions
+    await subjectRepository.withTransaction(async (transaction) => {
+        const newSubject = new Subject('DB', 'Database', 'Database course', 2024);
+        await subjectRepository.save(newSubject);
+        
+        // If any operation throws an error, the transaction will be rolled back
+        if (newSubject.Id !== 'DB') {
+            throw new Error('Something went wrong');
+        }
+        
+        // If we get here, the transaction will be committed
+    });
 }
 
 test();
-```
