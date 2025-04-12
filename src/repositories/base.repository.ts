@@ -50,17 +50,65 @@ export class BaseRepository<T extends object, Tid> implements IRepository<T, Tid
        
     }
 
+    // Update the save method:
+
     async save(entity: T): Promise<T> {
-        // console.log('Saving entity:', entity);
-        // console.log('Class type:', this.classType.name);
+        // Handle auto-increment fields
+        const propertyNames = Object.getOwnPropertyNames(entity);
+        const fields: string[] = [];
+        const values: string[] = [];
 
-        // // Create the table if it doesn't exist
-        // await this.repository.createTableIfNotExists(this.classType.name, this.classType);
+        // Collect non-auto-increment fields and values
+        for (const propertyName of propertyNames) {
+            const autoIncrement = Reflect.getMetadata('AutoIncrement', this.classType.prototype, propertyName);
+            const isPrimaryKey = Reflect.getMetadata('PrimaryKey', this.classType.prototype, propertyName);
 
-        // Save the entity to DuckDB 
-        await this.repository.saveToDuckDB(this.classType.name, this.classType, [entity]);
+            if (autoIncrement && isPrimaryKey) {
+                continue; // Skip auto-increment primary key
+            }
 
-        return entity;
+            const value = entity[propertyName as keyof T];
+            fields.push(propertyName);
+
+            if (value === undefined || value === null) {
+                values.push('NULL');
+            } else if (typeof value === 'string') {
+                const escapedValue = (value as string).replace(/'/g, "''");
+                values.push(`'${escapedValue}'`);
+            } else if (typeof value === 'boolean') {
+                values.push(value ? 'TRUE' : 'FALSE');
+            } else {
+                values.push(`${value}`);
+            }
+        }
+
+        // Build and execute the INSERT statement
+        const insertSQL = `INSERT INTO main.${this.tableName} (${fields.join(', ')}) VALUES (${values.join(', ')})`;
+        console.log("Insert SQL:", insertSQL);
+
+        try {
+            await this.repository.executeQuery(insertSQL);
+
+            // For auto-increment fields, fetch the last inserted ID
+            for (const propertyName of propertyNames) {
+                const autoIncrement = Reflect.getMetadata('AutoIncrement', this.classType.prototype, propertyName);
+                const isPrimaryKey = Reflect.getMetadata('PrimaryKey', this.classType.prototype, propertyName);
+
+                if (autoIncrement && isPrimaryKey) {
+                    const query = `SELECT MAX(${propertyName}) as last_id FROM main.${this.tableName}`;
+                    const result = await this.repository.executeQuery(query);
+
+                    if (result && result.length > 0) {
+                        entity[propertyName as keyof T] = result[0].last_id;
+                    }
+                }
+            }
+
+            return entity;
+        } catch (error) {
+            console.error("Error saving entity:", error);
+            throw error;
+        }
     }
 
     async saveAll(entities: T[]): Promise<T[]> {

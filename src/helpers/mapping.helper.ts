@@ -9,42 +9,47 @@ export function modelToArray<T>(model: T, classType: new() => T): unknown[] {
     return array;
 }
 
-export function mapToSQLFieldsValues<T>(model: T, classType: new() => T): string {
-    const values = modelToArray(model, classType);
-    const query = values.map(item => {
-        let obj = null;
-        switch (typeof item) {
-            case 'number':
-                obj = item;
-                break;
-            case 'string':
+export function mapToSQLFieldsValues<T>(data: T, classType: new () => T): string {
+    const fields: string[] = [];
+    const values: string[] = [];
 
-                // eslint-disable-next-line no-control-regex
-                obj = `'${item.replace(/'/g, '\'\'').replace(/\u0000/g, '')}'`;
-                break;
-            case 'boolean':
-                obj = item ? 1 : 0;
-                break;
-            case 'object':
-                if (!item) {
-                    obj = 'null';
-                } else if (Array.isArray(item)) {
-                    obj = `'${JSON.stringify(item)}'`;
-                }
-                else if (item instanceof Date) {
-                    obj = `'${item.toISOString()}'`; // Convert date to ISO 8601 string format
-                }
-                else {
-                    obj = `'${JSON.stringify(item)}'`;
-                }
-                break;
-            default:
-                obj = 'null';
-                break;
+    // Get property names from the entity
+    const propertyNames = Object.getOwnPropertyNames(data);
+
+    for (const propertyName of propertyNames) {
+        // Skip auto-increment primary keys
+        const autoIncrement = Reflect.getMetadata('AutoIncrement', classType.prototype, propertyName);
+        const isPrimaryKey = Reflect.getMetadata('PrimaryKey', classType.prototype, propertyName);
+
+        if (autoIncrement && isPrimaryKey) {
+            continue; // Skip this field in the INSERT statement
         }
-        return obj;
-    }).join(',');
-    return `(${query})`;
+
+        // Get the value
+        const value = data[propertyName as keyof T];
+
+        // Add field name
+        fields.push(propertyName);
+
+        // Format value based on its type
+        if (value === undefined || value === null) {
+            values.push('NULL');
+        } else if (typeof value === 'string') {
+            const escapedValue = (value as string).replace(/'/g, "''");
+            values.push(`'${escapedValue}'`);
+        } else if (typeof value === 'boolean') {
+            values.push(value ? 'TRUE' : 'FALSE');
+        } else {
+            values.push(`${value}`);
+        }
+    }
+
+    // Make sure we have fields to insert
+    if (fields.length === 0) {
+        throw new Error("No fields available for insert after excluding auto-increment fields");
+    }
+
+    return `(${fields.join(', ')}) VALUES (${values.join(', ')})`;
 }
 
 export function parseJson(input: any): any {

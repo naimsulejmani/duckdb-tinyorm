@@ -110,21 +110,5 @@ export function generateCreateTableStatement<T>(tableName: string, classType: ne
 }
 
 export function generateInsertIntoStatement<T>(tableName: string, classType: new() => T): string {
-    let insertIntoTableStatement = `INSERT INTO main.${tableName} (`;
-
-    const propertyNames = Object.getOwnPropertyNames(new classType());
-
-    for (let i = 0; i < propertyNames.length; i++) {
-        const propertyName = propertyNames[i];
-
-        insertIntoTableStatement += `${propertyName}`;
-
-        if (i < propertyNames.length - 1) {
-            insertIntoTableStatement += ', ';
-        }
-    }
-
-    insertIntoTableStatement += ') VALUES ';
-
-    return insertIntoTableStatement;
+    return `INSERT INTO main.${tableName} `;
 }

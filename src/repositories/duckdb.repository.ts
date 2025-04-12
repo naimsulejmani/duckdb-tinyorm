@@ -78,47 +78,43 @@ export class DuckDbRepository {
             // Get the actual table name from metadata if available
             const actualTableName = Reflect.getMetadata('TableName', classType) || tableName;
 
-            // First, extract sequences from the create table statement - we need to create them separately
-            const sequences: Record<string, string> = {};
-
-            // Extract auto-increment columns and their types
+            // Extract auto-increment columns
             const instance = new classType();
             const propertyNames = Object.getOwnPropertyNames(instance);
+            const sequences: Record<string, string> = {};
 
             for (const propertyName of propertyNames) {
                 const autoIncrement = Reflect.getMetadata('AutoIncrement', classType.prototype, propertyName);
-                if (autoIncrement) {
+                const isPrimaryKey = Reflect.getMetadata('PrimaryKey', classType.prototype, propertyName);
+
+                if (autoIncrement && isPrimaryKey) {
+                // Create sequence name using the table name, not the class name
                     const sequenceName = `seq_${actualTableName}_${propertyName}`;
                     sequences[propertyName] = sequenceName;
+
+                    // Create sequence first
+                    const createSequenceStatement = `CREATE SEQUENCE IF NOT EXISTS ${sequenceName} START 1;`;
+                    try {
+                        await this.executeQuery(createSequenceStatement);
+                        console.log(`Sequence ${sequenceName} is created successfully!`);
+                    } catch (err) {
+                        console.error(`ERROR CREATING SEQUENCE: `, err);
+                        throw err;
+                    }
                 }
             }
 
-            // Create sequences first
-            for (const propertyName in sequences) {
-                const sequenceName = sequences[propertyName];
-                const createSequenceStatement = `CREATE SEQUENCE IF NOT EXISTS ${sequenceName};`;
-
-                try {
-                    // Execute sequence creation first, completely separate from table creation
-                    await this.executeQuery(createSequenceStatement);
-                    console.log(`Sequence ${sequenceName} is created successfully!`);
-                } catch (err) {
-                    console.error(`ERROR CREATING SEQUENCE: `, err);
-                    throw err;
-                }
-            }
-
-            // Store sequences in metadata for later use during inserts
+            // Store sequences in metadata
             Reflect.defineMetadata('Sequences', sequences, classType);
 
-            // Now create the table with references to the already-created sequences
+            // Now create the table
             const createTableStatement = generateCreateTableStatement(actualTableName, classType);
 
             try {
                 await this.executeQuery(createTableStatement);
                 console.log(`Table ${actualTableName} is created successfully!`);
             } catch (err) {
-                console.error(`ERROR CREATING TABLE: `, err);
+                console.error(`ERROR CREATING: `, err);
                 throw err;
             }
         } catch (err) {
@@ -148,8 +144,12 @@ export class DuckDbRepository {
         await this.createTableIfNotExists<T>(actualTableName, classType);
         const query = data.map(item => mapToSQLFieldsValues(item, classType)).join(', ');
 
+        // Log the SQL query for debugging
+        const fullQuery = generateInsertIntoStatement(actualTableName, classType) + query;
+        console.log("SQL Insert Query:", fullQuery);
+
         // Use actualTableName instead of tableName
-        await bulkInsert(this.connection, generateInsertIntoStatement(actualTableName, classType) + query);
+        await bulkInsert(this.connection, fullQuery);
     }
 
     public async saveToParquet(name: string, mainFolder?: string) {

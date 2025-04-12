@@ -80,6 +80,8 @@ class SubjectRepository extends BaseRepository<Subject, number> {
     }
 }
 
+// Modify the test function to log IDs
+
 async function test() {
     const subjectRepository = new SubjectRepository();
     await subjectRepository.init();
@@ -87,9 +89,15 @@ async function test() {
     // Save entities
     const subject1 = new Subject('JB', "Java Basic", "Java Basic", 2024);
     const subject2 = new Subject('OOP', "Java OOP", "Java Object Oriented Programming", 2024);
-    await subjectRepository.save(subject1);
-    await subjectRepository.save(subject2);
 
+    // Save and log the returned entities with their IDs
+    const savedSubject1 = await subjectRepository.save(subject1);
+    console.log("Saved subject 1 with ID:", savedSubject1.Id);
+
+    const savedSubject2 = await subjectRepository.save(subject2);
+    console.log("Saved subject 2 with ID:", savedSubject2.Id);
+
+    // Rest of your test...
     // Find all records
     const result = await subjectRepository.findAll();
     console.table(result);
