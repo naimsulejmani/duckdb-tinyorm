@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { DuckDbRepository } from './duckdb.repository';
+import { DuckDbRepository, ExportOptions } from './duckdb.repository';
 import { getPrimaryId } from '../helpers/table-util.helper';
 import { IRepository } from './base.interface';
 import { QueryBuilder } from '../query/query-builder';
@@ -239,5 +239,15 @@ export class BaseRepository<T extends object, Tid> implements IRepository<T, Tid
         const entity = new this.classType();
         Object.assign(entity, data);
         return entity;
+    }
+
+    // Add this method to your BaseRepository class
+
+    async exportData(options: ExportOptions): Promise<void> {
+        return this.repository.exportTable(this.tableName, options);
+    }
+
+    async exportQuery(query: string, options: ExportOptions): Promise<void> {
+        return this.repository.exportQuery(query, options);
     }
 }

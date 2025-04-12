@@ -1,6 +1,7 @@
 import { Page, Pageable } from '../pagination/pagination';
 import { QueryBuilder } from '../query/query-builder';
 import { Transaction } from './transaction';
+import { ExportOptions } from './duckdb.repository';
 
 export interface IRepository<T extends object, Tid> {
     init(): Promise<void>;
@@ -19,4 +20,6 @@ export interface IRepository<T extends object, Tid> {
     createQueryBuilder(): Promise<QueryBuilder<T>>;
     withTransaction<R>(callback: (transaction: Transaction) => Promise<R>): Promise<R>;
     toEntity(data: Record<string, any>): T;
+    exportData(options: ExportOptions): Promise<void>;
+    exportQuery(query: string, options: ExportOptions): Promise<void>;
 }

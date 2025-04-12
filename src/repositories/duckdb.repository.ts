@@ -3,8 +3,9 @@ import { Connection, Database } from 'duckdb';
 
 import { mapToSQLFieldsValues } from '../helpers/mapping.helper';
 import { generateCreateTableStatement, generateInsertIntoStatement } from '../helpers/table-util.helper';
-import { bulkInsert, deleteTableData, dropTable, executeQuery, saveQueryToParquet, saveToParquet } from '../helpers/db.helper';
+import { bulkInsert, deleteTableData, dropTable, executeQuery, exportToCSV, exportToJSON, exportToParquet, saveQueryToParquet, saveToParquet } from '../helpers/db.helper';
 import { Transaction } from './transaction';  // Add this import
+import { ConnectionError } from '../errors/orm-errors';
 
 export enum DuckDbLocation {
     File = "",
@@ -201,4 +202,83 @@ export class DuckDbRepository {
         return new Transaction(this.connection!);
     }
 
+    public async exportTable<T>(tableName: string, options: ExportOptions): Promise<void> {
+        if (this.connection == undefined) {
+            throw new ConnectionError("Connection is not established.");
+        }
+        const actualTableName = `main.${tableName}`;
+
+        switch (options.format) {
+            case 'csv':
+                return await exportToCSV(
+                    this.connection,
+                    actualTableName,
+                    options.fileName,
+                    options.csvOptions
+                );
+            case 'json':
+                return await exportToJSON(
+                    this.connection,
+                    actualTableName,
+                    options.fileName,
+                    options.jsonOptions
+                );
+            case 'parquet':
+                return await exportToParquet(
+                    this.connection,
+                    actualTableName,
+                    options.fileName,
+                    options.parquetOptions
+                );
+            default:
+                throw new Error(`Unsupported format: ${options.format}`);
+        }
+    }
+
+    public async exportQuery(query: string, options: ExportOptions): Promise<void> {
+        if (this.connection == undefined) {
+            throw new ConnectionError("Connection is not established.");
+        }
+        switch (options.format) {
+            case 'csv':
+                return await exportToCSV(
+                    this.connection,
+                    query,
+                    options.fileName,
+                    options.csvOptions
+                );
+            case 'json':
+                return await exportToJSON(
+                    this.connection,
+                    query,
+                    options.fileName,
+                    options.jsonOptions
+                );
+            case 'parquet':
+                return await exportToParquet(
+                    this.connection,
+                    query,
+                    options.fileName,
+                    options.parquetOptions
+                );
+            default:
+                throw new Error(`Unsupported format: ${options.format}`);
+        }
+    }
+
+}
+export interface ExportOptions {
+    format: 'csv' | 'json' | 'parquet';
+    fileName: string;
+    // Format-specific options
+    csvOptions?: {
+        header?: boolean;
+        delimiter?: string;
+    };
+    jsonOptions?: {
+        pretty?: boolean;
+    };
+    parquetOptions?: {
+        compression?: string;
+    };
 }
