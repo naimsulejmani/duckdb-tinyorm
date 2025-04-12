@@ -6,6 +6,13 @@ export class OrmBaseError extends Error {
   }
 }
 
+export class ConnectionError extends OrmBaseError {
+  constructor(entityName: string) {
+    super("Error connecting to database: " + entityName);
+    Object.setPrototypeOf(this, ConnectionError.prototype);
+  }
+}
+
 export class EntityNotFoundError extends OrmBaseError {
   constructor(entityName: string, id: any) {
     super(`Entity ${entityName} with id ${id} not found`);
