@@ -34,8 +34,8 @@
   "dependencies": {
     "@types/node": "^22.7.4",
     "dotenv": "^16.4.5",
-    "duckdb": "^1.1.0",
-    "duckdb-tinyorm": "^1.0.10",
+    "duckdb": "^1.2.1",
+    "duckdb-tinyorm": "2.0.1",
     "globals": "^15.9.0",
     "nodemon": "^3.1.7",
     "npm": "^10.8.3",
