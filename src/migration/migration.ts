@@ -1,4 +1,4 @@
-import { Connection } from 'duckdb';
+import { DuckDBConnection } from '@duckdb/node-api';
 
 // Add this type alias for DuckDB row data
 type DuckDBRow = Record<string, any>;
@@ -17,7 +17,7 @@ export class MigrationRunner {
     private readonly migrationTableName: string;
 
     constructor(
-        private readonly connection: Connection,
+        private readonly connection: DuckDBConnection,
         options: MigrationOptions = {}
     ) {
         this.migrationTableName = options.tableName ?? 'migrations';
@@ -36,15 +36,12 @@ export class MigrationRunner {
             )
         `;
         
-        return new Promise<void>((resolve, reject) => {
-            this.connection.run(query, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
+        try {
+            await this.connection.run(query);
+        } catch (error) {
+            console.error('Failed to create migration table:', error);
+            throw error;
+        }
     }
 
     async applyMigrations(migrations: Migration[]): Promise<void> {
@@ -90,21 +87,20 @@ export class MigrationRunner {
     private async getAppliedMigrations(): Promise<{ id: number; version: string; applied_at: string }[]> {
         const query = `SELECT * FROM ${this.migrationTableName} ORDER BY id ASC`;
         
-        return new Promise((resolve, reject) => {
-            this.connection.all(query, (err, result) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    // Cast the result to the expected type
-                    const typedResult = result.map((row: DuckDBRow) => ({
-                        id: typeof row.id === 'number' ? row.id : Number(row.id),
-                        version: String(row.version),
-                        applied_at: String(row.applied_at)
-                    }));
-                    resolve(typedResult);
-                }
-            });
-        });
+        try {
+            const reader = await this.connection.runAndReadAll(query);
+            const rows = reader.getRowObjects();
+
+        // Cast the result to the expected type
+            return rows.map((row: DuckDBRow) => ({
+                id: typeof row.id === 'number' ? row.id : Number(row.id),
+                version: String(row.version),
+                applied_at: String(row.applied_at)
+            }));
+        } catch (error) {
+            console.error('Failed to get applied migrations:', error);
+            throw error;
+        }
     }
 
     private async applyMigration(migration: Migration): Promise<void> {
@@ -160,14 +156,11 @@ export class MigrationRunner {
     }
 
     private async executeQuery(query: string): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.run(query, (err, result) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(result);
-                }
-            });
-        });
+        try {
+            return await this.connection.run(query);
+        } catch (error) {
+            console.error(`Failed to execute query: ${query}`, error);
+            throw error;
+        }
     }
 }
