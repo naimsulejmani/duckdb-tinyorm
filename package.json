@@ -1,6 +1,6 @@
 {
   "name": "duckdb-tinyorm",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "TinyORM for Duckdb, easy setup",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -35,7 +35,7 @@
     "@types/node": "^22.7.4",
     "dotenv": "^16.4.5",
     "duckdb": "^1.2.1",
-    "duckdb-tinyorm": "2.0.1",
+    "duckdb-tinyorm": "^2.0.2",
     "globals": "^15.9.0",
     "nodemon": "^3.1.7",
     "npm": "^10.8.3",
