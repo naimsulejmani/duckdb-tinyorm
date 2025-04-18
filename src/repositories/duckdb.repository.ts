@@ -6,6 +6,7 @@ import { generateCreateTableStatement, generateInsertIntoStatement } from '../he
 import { bulkInsert, deleteTableData, dropTable, executeQuery, exportToCSV, exportToJSON, exportToParquet, saveQueryToParquet, saveToParquet } from '../helpers/db.helper';
 import { Transaction } from './transaction';  // Add this import
 import { ConnectionError } from '../errors/orm-errors';
+import { AzureCredentialChainSecret, AzureProviderType, AzureSecret, S3Secret, Secret, SecretType } from './models.interface';
 
 export enum DuckDbLocation {
     File = "",
@@ -286,6 +287,104 @@ export class DuckDbRepository {
             console.error(`ERROR CHECKING SEQUENCE: `, err);
             return false;
         }
+    }
+
+    // Method to create a secret in DuckDB
+    public async createSecret(secret: Secret): Promise<void> {
+        let query = '';
+
+        switch (secret.type) {
+            case SecretType.S3:
+                query = this.buildS3SecretQuery(secret);
+                break;
+            case SecretType.AZURE:
+                query = this.buildAzureSecretQuery(secret);
+                break;
+            default:
+                throw new Error(`Secret type '${secret}' not supported`);
+        }
+
+        try {
+            await this.executeQuery(query);
+            console.log(`Secret '${secret.name}' created successfully`);
+        } catch (error) {
+            console.error(`Error creating secret '${secret.name}':`, error);
+            throw error;
+        }
+    }
+
+    // Method to drop a secret
+    public async dropSecret(secretName: string): Promise<void> {
+        const query = `DROP SECRET IF EXISTS ${secretName}`;
+
+        try {
+            await this.executeQuery(query);
+            console.log(`Secret '${secretName}' dropped successfully`);
+        } catch (error) {
+            console.error(`Error dropping secret '${secretName}':`, error);
+            throw error;
+        }
+    }
+
+    // Method to replace (update) a secret
+    public async replaceSecret(secret: Secret): Promise<void> {
+        // Drop the existing secret first if it exists
+        await this.dropSecret(secret.name);
+
+        // Create the new secret
+        await this.createSecret(secret);
+    }
+
+    // Method to list all secrets
+    public async listSecrets(): Promise<any[]> {
+        const query = `SELECT * FROM duckdb_secrets()`;
+        return this.executeQuery(query);
+    }
+
+    // Helper method to build S3 secret query
+    private buildS3SecretQuery(secret: S3Secret): string {
+        let query = `CREATE SECRET ${secret.name} (\n    TYPE ${secret.type},\n    KEY_ID '${secret.keyId}',\n    SECRET '${secret.secret}'`;
+
+        if (secret.region) {
+            query += `,\n    REGION '${secret.region}'`;
+        }
+
+        if (secret.scope) {
+            query += `,\n    SCOPE '${secret.scope}'`;
+        }
+
+        query += '\n)';
+
+        return query;
+    }
+
+    // Helper method to build Azure secret query
+    private buildAzureSecretQuery(secret: AzureSecret): string {
+        let query = `CREATE SECRET ${secret.name} (\n    TYPE ${secret.type}`;
+
+        // Handle different Azure provider types
+        if ('connectionString' in secret) {
+            query += `,\n    CONNECTION_STRING '${secret.connectionString}'`;
+        } else if ('provider' in secret) {
+            query += `,\n    PROVIDER ${secret.provider}`;
+
+            if (secret.provider === AzureProviderType.CREDENTIAL_CHAIN) {
+                query += `,\n    CHAIN '${(secret as AzureCredentialChainSecret).chain}'`;
+            }
+
+            query += `,\n    ACCOUNT_NAME '${secret.accountName}'`;
+        }
+
+        query += '\n)';
+
+        return query;
+    }
+
+    // Method to check if a secret exists
+    public async secretExists(secretName: string): Promise<boolean> {
+        const query = `SELECT name FROM duckdb_secrets() WHERE name = '${secretName}'`;
+        const result = await this.executeQuery(query);
+        return result && result.length > 0;
     }
 
 }

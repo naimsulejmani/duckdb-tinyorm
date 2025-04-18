@@ -1,10 +1,5 @@
+import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from 'duckdb-tinyorm';
 import 'reflect-metadata';
-import { Transaction } from './repositories/transaction';
-import { DuckDbLocation, DuckDbRepository } from './repositories/duckdb.repository';
-import { Column, DataTypeDecorator, Entity, Id, Repository } from './constants/data-type.decorator';
-import { BaseRepository } from './repositories/base.repository';
-import { getClassName } from './helpers/table-util.helper';
-
 // Create instance in memory or use File
 const duckDbRepository: DuckDbRepository = DuckDbRepository.getInstances({
     name: 'default',
@@ -173,5 +168,3 @@ async function test() {
         }
     });
 }
-
-test();
