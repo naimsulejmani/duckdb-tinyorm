@@ -1,11 +1,12 @@
-import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from 'duckdb-tinyorm';
+// import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from 'duckdb-tinyorm';
 import 'reflect-metadata';
-// Create instance in memory or use File
-const duckDbRepository: DuckDbRepository = DuckDbRepository.getInstances({
-    name: 'default',
-    location: DuckDbLocation.Memory,
-    filename: undefined
-});
+import { DuckDbLocation, DuckDbRepository } from './repositories/duckdb.repository';
+import { Column, Entity, Repository } from './constants/data-type.decorator';
+import { BaseRepository } from './repositories/base.repository';
+import { Transaction } from './repositories/transaction';
+
+// Use the async getInstance method instead of getInstances
+let duckDbRepository: DuckDbRepository;
 
 @Entity({ name: 'subjects' })
 export class Subject {
@@ -51,8 +52,8 @@ export class Subject {
 
 @Repository(Subject)
 class SubjectRepository extends BaseRepository<Subject, number> {
-    constructor() {
-        super(duckDbRepository);
+    constructor(repo: DuckDbRepository) {
+        super(repo);
     }
 
     // Add a custom method to find by code
@@ -76,95 +77,134 @@ class SubjectRepository extends BaseRepository<Subject, number> {
     }
 }
 
-// Modify the test function to log IDs
-
+// Modify the test function to initialize the connection properly
 async function test() {
-    const subjectRepository = new SubjectRepository();
-    await subjectRepository.init();
+    try {
+        // Initialize the repository asynchronously
+        duckDbRepository = await DuckDbRepository.getInstance({
+            name: 'default',
+            location: DuckDbLocation.Memory,
+            filename: undefined
+        });
 
-    // Save entities
-    const subject1 = new Subject('JB', "Java Basic", "Java Basic", 2024);
-    const subject2 = new Subject('OOP', "Java OOP", "Java Object Oriented Programming", 2024);
+        console.log("DuckDb repository initialized successfully");
 
-    // Save and log the returned entities with their IDs
-    const savedSubject1 = await subjectRepository.save(subject1);
-    console.log("Saved subject 1 with ID:", savedSubject1.Id);
+        const subjectRepository = new SubjectRepository(duckDbRepository);
+        await subjectRepository.init();
 
-    const savedSubject2 = await subjectRepository.save(subject2);
-    console.log("Saved subject 2 with ID:", savedSubject2.Id);
+        // Save entities
+        const subject1 = new Subject('JB', "Java Basic", "Java Basic", 2024);
+        const subject2 = new Subject('OOP', "Java OOP", "Java Object Oriented Programming", 2024);
 
-    // Rest of your test...
-    // Find all records
-    const result = await subjectRepository.findAll();
-    console.table(result);
+        // Save and log the returned entities with their IDs
+        console.log("Saving subjects...");
+        console.log("Subject 1:", subject1);
+        const savedSubject1 = await subjectRepository.save(subject1);
+        console.log("Saved subject 1 with ID:", savedSubject1.Id);
+        console.log("Subject 2:", subject2);
+        const savedSubject2 = await subjectRepository.save(subject2);
+        console.log("Saved subject 2 with ID:", savedSubject2.Id);
 
-    // Find by Code using custom method
-    const subjectFound = await subjectRepository.findByCode("JB");
-    console.info(subjectFound);
+        // Rest of your test...
+        // Find all records
+        console.log("Finding all subjects...");
+        const result = await subjectRepository.findAll();
+        console.table(result);
 
-    // Delete by Code using custom method
-    await subjectRepository.removeByCode("JB");
+        // Find by Code using custom method
+        console.log("Finding subject by code 'JB'...");
+        const subjectFound = await subjectRepository.findByCode("JB");
+        console.info(subjectFound);
 
-    // Find with criteria
-    const subjects = await subjectRepository.findBy({ Year: 2024 }, ["Year"]);
-    console.table(subjects);
+        // Delete by Code using custom method
+        console.log("Deleting subject by code 'JB'...");
+        await subjectRepository.removeByCode("JB");
 
-    // Use pagination
-    const page = await subjectRepository.findWithPagination({ page: 0, size: 10 });
-    console.log(`Found ${page.totalElements} subjects across ${page.totalPages} pages`);
+        // Find with criteria
+        console.log("Finding subjects with criteria (Year = 2024)...");
+        const subjects = await subjectRepository.findBy({ Year: 2024 }, ["Year"]);
+        console.table(subjects);
 
-    // Use query builder
-    const queryBuilder = await subjectRepository.createQueryBuilder();
-    const customQuery = queryBuilder
-        .select(['Id', 'Name'])
-        .where('Year = 2024')
-        .orderBy('Name', 'ASC')
-        .limit(5)
-        .getQuery();
-    const customResults = await duckDbRepository.executeQuery(customQuery);
-    console.table(customResults);
+        // Use pagination
+        console.log("Finding subjects with pagination (page 0, size 1)...");
+        const page = await subjectRepository.findWithPagination({ page: 0, size: 1 });
+        console.log(`Found ${page.totalElements} subjects across ${page.totalPages} pages`);
+        console.table(page.content);
 
-    // Use transactions
-    await subjectRepository.withTransaction(async (transaction: Transaction) => {
-        const newSubject = new Subject('DB', 'Database', 'Database course', 2024);
-        await subjectRepository.save(newSubject);
+        console.log("Finding subjects with pagination (page 1, size 1)...");
+        const page1 = await subjectRepository.findWithPagination({ page: 1, size: 1 });
+        console.log(`Found ${page.totalElements} subjects across ${page1.totalPages} pages`);
+        console.table(page1.content);
 
-        // If any operation throws an error, the transaction will be rolled back
-        if (newSubject.Code !== 'DB') {
-            throw new Error('Something went wrong');
-        }
+        // Use query builder
+        console.log("Using query builder to find subjects (Year = 2024, limit 5)...");
+        const queryBuilder = await subjectRepository.createQueryBuilder();
+        const customQuery = queryBuilder
+            .select(['Id', 'Name'])
+            .where('Year = 2024')
+            .orderBy('Name', 'ASC')
+            .limit(5)
+            .getQuery();
+        const customResults = await duckDbRepository.executeQuery(customQuery);
+        console.table(customResults);
 
-        // If we get here, the transaction will be committed
-    });
+        // Use transactions
+        console.log("Using transaction to save a new subject...");
+        await subjectRepository.withTransaction(async (transaction: Transaction) => {
+            const newSubject = new Subject('DB', 'Database', 'Database course', 2024);
+            await subjectRepository.save(newSubject);
 
-    // Example usage in test.ts or another file
+            // If any operation throws an error, the transaction will be rolled back
+            if (newSubject.Code !== 'DB') {
+                throw new Error('Something went wrong');
+            }
 
-    // Export a table to CSV
-    await subjectRepository.exportData({
-        format: 'csv',
-        fileName: 'subjects.csv',
-        csvOptions: {
-            header: true,
-            delimiter: ','
-        }
-    });
+            // If we get here, the transaction will be committed
+        });
 
-    // Export query results to JSON
-    const query = `SELECT * FROM main.subjects WHERE Year = 2024`;
-    await subjectRepository.exportQuery(query, {
-        format: 'json',
-        fileName: 'subjects-2024.json',
-        jsonOptions: {
-            pretty: true
-        }
-    });
+        // Example usage in test.ts or another file
 
-    // Export all data to Parquet using DuckDbRepository directly
-    await duckDbRepository.exportTable('subjects', {
-        format: 'parquet',
-        fileName: 'subjects.parquet',
-        parquetOptions: {
-            compression: 'ZSTD'
-        }
-    });
+        // Export a table to CSV
+        console.log("Exporting subjects to CSV...");
+        await subjectRepository.exportData({
+            format: 'csv',
+            fileName: 'subjects.csv',
+            csvOptions: {
+                header: true,
+                delimiter: ','
+            }
+        });
+
+        // Export query results to JSON
+        console.log("Exporting subjects with Year = 2024 to JSON...");
+        const query = `SELECT * FROM main.subjects WHERE Year = 2024`;
+        await subjectRepository.exportQuery(query, {
+            format: 'json',
+            fileName: 'subjects-2024.json',
+            jsonOptions: {
+                pretty: true
+            }
+        });
+
+        // Export all data to Parquet using DuckDbRepository directly
+        console.log("Exporting all subjects to Parquet...");
+        await duckDbRepository.exportTable('subjects', {
+            format: 'parquet',
+            fileName: 'subjects.parquet',
+            parquetOptions: {
+                compression: 'ZSTD'
+            }
+        });
+    } catch (error) {
+        console.error("Error during test execution:", error);
+    }
 }
+
+// Use an IIFE to allow top-level await
+(async () => {
+    try {
+        await test();
+    } catch (error) {
+        console.error("Fatal error:", error);
+    }
+})();

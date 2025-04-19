@@ -37,12 +37,12 @@ npm install duckdb-tinyorm
 yarn add duckdb-tinyorm
 ```
 
-DuckDB TinyORM requires `reflect-metadata` for decorator support:
+DuckDB TinyORM requires `reflect-metadata` and the DuckDB Node-API for decorator support:
 
 ```bash
-npm install reflect-metadata
+npm install reflect-metadata @duckdb/node-api
 # or
-yarn add reflect-metadata
+yarn add reflect-metadata @duckdb/node-api
 ```
 
 Make sure to import `reflect-metadata` at the beginning of your application:
@@ -134,6 +134,7 @@ main();
 - 🔍 **Query Builder**: Fluent API for building complex queries
 - 📊 **Data Export**: Export data to CSV, JSON, and Parquet formats
 - 📄 **Pagination**: Built-in support for paginating large datasets
+- 🔄 **Promise-based API**: Uses the new native Promise support in DuckDB Node-API
 
 ## 🏗️ Entity Definition
 
@@ -376,7 +377,10 @@ const inMemoryDb = DuckDbRepository.getInstances({
 const fileDb = DuckDbRepository.getInstances({
   name: 'production',
   location: DuckDbLocation.File,
-  filename: './data/mydb.db'
+  filename: './data/mydb.db',
+  options: {
+    threads: '4'
+  }
 });
 ```
 

@@ -1,12 +1,12 @@
-import { Connection } from 'duckdb';
+import { DuckDBConnection } from '@duckdb/node-api';
 import { TransactionError } from '../errors/orm-errors';
 
 export class Transaction {
-    constructor(private connection: Connection) {}
+    constructor(private connection: DuckDBConnection) { }
 
     async begin(): Promise<void> {
         try {
-            await this.execute('BEGIN TRANSACTION');
+            await this.connection.run('BEGIN TRANSACTION');
         } catch (error) {
             throw new TransactionError('begin', error as Error);
         }
@@ -14,7 +14,7 @@ export class Transaction {
 
     async commit(): Promise<void> {
         try {
-            await this.execute('COMMIT');
+            await this.connection.run('COMMIT');
         } catch (error) {
             throw new TransactionError('commit', error as Error);
         }
@@ -22,21 +22,9 @@ export class Transaction {
 
     async rollback(): Promise<void> {
         try {
-            await this.execute('ROLLBACK');
+            await this.connection.run('ROLLBACK');
         } catch (error) {
             throw new TransactionError('rollback', error as Error);
         }
-    }
-
-    private execute(query: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            this.connection.run(query, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
     }
 }
