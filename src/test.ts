@@ -129,10 +129,12 @@ async function test() {
         console.log("Finding subjects with pagination (page 0, size 1)...");
         const page = await subjectRepository.findWithPagination({ page: 0, size: 1 });
         console.log(`Found ${page.totalElements} subjects across ${page.totalPages} pages`);
+        console.table(page.content);
 
         console.log("Finding subjects with pagination (page 1, size 1)...");
         const page1 = await subjectRepository.findWithPagination({ page: 1, size: 1 });
         console.log(`Found ${page.totalElements} subjects across ${page1.totalPages} pages`);
+        console.table(page1.content);
 
         // Use query builder
         console.log("Using query builder to find subjects (Year = 2024, limit 5)...");
