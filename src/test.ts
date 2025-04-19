@@ -1,10 +1,6 @@
 // import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from 'duckdb-tinyorm';
 import 'reflect-metadata';
-import { DuckDbLocation, DuckDbRepository } from './repositories/duckdb.repository';
-import { Column, Entity, Repository } from './constants/data-type.decorator';
-import { BaseRepository } from './repositories/base.repository';
-import { Transaction } from './repositories/transaction';
-
+import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from 'duckdb-tinyorm'
 // Use the async getInstance method instead of getInstances
 let duckDbRepository: DuckDbRepository;
 

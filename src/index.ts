@@ -11,10 +11,9 @@ import { QueryBuilder } from './query/query-builder';
 import { Transaction } from './repositories/transaction';
 import { Page, Pageable } from './pagination/pagination';
 import { Migration, MigrationRunner, MigrationOptions } from './migration/migration';
-import { ConnectionError } from './errors/orm-errors';
 import {
     OrmBaseError, EntityNotFoundError, PrimaryKeyError, TableCreationError,
-    QueryExecutionError, TransactionError, ValidationError, MigrationError
+    QueryExecutionError, TransactionError, ValidationError, MigrationError, ConnectionError
 } from './errors/orm-errors';
 
 export {
