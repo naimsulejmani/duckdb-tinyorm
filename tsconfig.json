@@ -27,6 +27,13 @@
   "exclude": [
     "node_modules",
     "dist",
-    "scripts"
+    "scripts",
+    "nodemon.*",
+    "**/*.csv",
+    "**/*.parquet",
+    "**/*.json",
+    "*.csv",
+    "*.parquet",
+    "*.json"
   ]
 }
