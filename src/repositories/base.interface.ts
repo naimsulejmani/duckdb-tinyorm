@@ -22,4 +22,5 @@ export interface IRepository<T extends object, Tid> {
     toEntity(data: Record<string, any>): T;
     exportData(options: ExportOptions): Promise<void>;
     exportQuery(query: string, options: ExportOptions): Promise<void>;
+    appendEntities(entities: T[]): Promise<void>
 }

@@ -20,6 +20,11 @@ A lightweight, TypeScript-friendly ORM designed specifically for DuckDB, focusin
   - [🔧 Query Builder](#-query-builder)
   - [🔒 Transactions](#-transactions)
   - [📊 Data Export](#-data-export)
+  - [⚡ DuckDB Appender (High-Performance Batch Insert)](#-duckdb-appender-high-performance-batch-insert)
+    - [High-Level: `appendEntities` (recommended)](#high-level-appendentities-recommended)
+    - [Low-Level: Manual Appender Control](#low-level-manual-appender-control)
+    - [Helper Functions: `appendValue` \& `appendEntity`](#helper-functions-appendvalue--appendentity)
+    - [When to Use Appender vs `saveAll`](#when-to-use-appender-vs-saveall)
   - [🧠 Advanced Usage](#-advanced-usage)
     - [🛠️ Custom Repositories](#️-custom-repositories)
     - [⚙️ DuckDB Database Configuration](#️-duckdb-database-configuration)
@@ -27,6 +32,7 @@ A lightweight, TypeScript-friendly ORM designed specifically for DuckDB, focusin
     - [🏷️ Decorators](#️-decorators)
     - [🔙 Legacy Decorators (backward compatibility)](#-legacy-decorators-backward-compatibility)
     - [🧰 Repository Methods](#-repository-methods)
+    - [⚡ Appender Helpers](#-appender-helpers)
   - [📜 License](#-license)
 
 ## 📥 Installation
@@ -135,6 +141,7 @@ main();
 - 📊 **Data Export**: Export data to CSV, JSON, and Parquet formats
 - 📄 **Pagination**: Built-in support for paginating large datasets
 - 🔄 **Promise-based API**: Uses the new native Promise support in DuckDB Node-API
+- ⚡ **DuckDB Appender**: High-performance batch insertion using DuckDB's native Appender API
 
 ## 🏗️ Entity Definition
 
@@ -338,6 +345,166 @@ await duckDbRepository.exportTable('subjects', {
 });
 ```
 
+## ⚡ DuckDB Appender (High-Performance Batch Insert)
+
+The DuckDB [Appender API](https://duckdb.org/docs/data/appender.html) provides the fastest way to bulk-load data into a table. It bypasses SQL parsing entirely and uses DuckDB's native binary ingestion path, making it significantly faster than `saveAll` for large datasets.
+
+> **Note:** The Appender API does **not** support sequence-based auto-increment defaults. All column values — including primary keys — must be provided by the caller. Use `saveAll` when you need auto-generated IDs.
+
+### High-Level: `appendEntities` (recommended)
+
+The simplest way to use the appender — just pass an array of entities to your repository:
+
+```typescript
+import 'reflect-metadata';
+import {
+  DuckDbRepository,
+  Entity,
+  Column,
+  Repository,
+  BaseRepository,
+  DuckDbLocation
+} from 'duckdb-tinyorm';
+
+@Entity({ name: 'events' })
+class Event {
+  @Column({ type: 'INTEGER', primaryKey: true })
+  Id!: number;
+
+  @Column({ type: 'VARCHAR', notNull: true })
+  Type!: string;
+
+  @Column({ type: 'DOUBLE' })
+  Value!: number;
+
+  constructor(id: number = 0, type: string = '', value: number = 0) {
+    this.Id = id;
+    this.Type = type;
+    this.Value = value;
+  }
+}
+
+@Repository(Event)
+class EventRepository extends BaseRepository<Event, number> {
+  constructor(db: DuckDbRepository) {
+    super(db);
+  }
+}
+
+async function main() {
+  const db = await DuckDbRepository.getInstance({
+    name: 'default',
+    location: DuckDbLocation.Memory
+  });
+
+  const eventRepo = new EventRepository(db);
+  await eventRepo.init();
+
+  // Build a large batch
+  const events: Event[] = [];
+  for (let i = 1; i <= 100_000; i++) {
+    events.push(new Event(i, i % 2 === 0 ? 'click' : 'view', Math.random() * 100));
+  }
+
+  // Bulk insert via the appender — much faster than saveAll for large arrays
+  await eventRepo.appendEntities(events);
+
+  const all = await eventRepo.findAll();
+  console.log(`Inserted ${all.length} events`);
+}
+
+main();
+```
+
+`appendEntities` will:
+1. Create an appender for the entity's table.
+2. Iterate over every entity using `@Column({ type })` metadata to pick the correct typed append method.
+3. Flush the appender on success and always close it (even on error).
+
+### Low-Level: Manual Appender Control
+
+For scenarios where you need full control (e.g., streaming rows, mixing sources, or custom column ordering), use the appender directly:
+
+```typescript
+import { DuckDbRepository, DuckDbLocation, DuckDBAppender } from 'duckdb-tinyorm';
+
+async function main() {
+  const db = await DuckDbRepository.getInstance({
+    name: 'default',
+    location: DuckDbLocation.Memory
+  });
+
+  // Create the table first
+  await db.executeQuery(`
+    CREATE TABLE IF NOT EXISTS events (
+      Id INTEGER PRIMARY KEY,
+      Type VARCHAR NOT NULL,
+      Value DOUBLE
+    )
+  `);
+
+  // Get a raw appender
+  const appender: DuckDBAppender = await db.createAppender('events');
+
+  appender.appendInteger(1);
+  appender.appendVarchar('click');
+  appender.appendDouble(42.5);
+  appender.endRow();
+
+  appender.appendInteger(2);
+  appender.appendVarchar('view');
+  appender.appendDouble(17.3);
+  appender.endRow();
+
+  // Flush & close (flushSync writes pending rows; closeSync releases the appender)
+  appender.flushSync();
+  appender.closeSync();
+
+  const rows = await db.executeQuery('SELECT * FROM events');
+  console.table(rows);
+}
+
+main();
+```
+
+### Helper Functions: `appendValue` & `appendEntity`
+
+Two utility functions are exported for building custom appender workflows:
+
+```typescript
+import { appendValue, appendEntity, DuckDBAppender } from 'duckdb-tinyorm';
+
+// appendValue — maps a single JS value to the right typed append method
+appendValue(appender, 42);            // appendInteger
+appendValue(appender, 'hello');       // appendVarchar
+appendValue(appender, 3.14);          // appendDouble
+appendValue(appender, true);          // appendBoolean
+appendValue(appender, BigInt(999));   // appendBigInt
+appendValue(appender, null);          // appendNull
+
+// Override the inferred method via an explicit SQL type:
+appendValue(appender, 7, 'SMALLINT'); // appendSmallInt
+appendValue(appender, 7, 'DOUBLE');   // appendDouble
+
+// appendEntity — appends all decorated columns of an entity + calls endRow()
+appendEntity(appender, event, Event);
+
+// Pre-compute property names outside the loop for maximum throughput:
+const props = Object.getOwnPropertyNames(new Event());
+for (const e of events) {
+  appendEntity(appender, e, Event, props);
+}
+```
+
+### When to Use Appender vs `saveAll`
+
+| Feature | `saveAll` | `appendEntities` / Appender |
+|---|---|---|
+| Auto-increment PKs | ✅ Supported | ❌ Must supply all values |
+| Speed (large batches) | Moderate (SQL parsing) | ⚡ Fast (binary ingestion) |
+| SQL constraints evaluated | Per-statement | At flush time |
+| Best for | Small-to-medium inserts, auto-IDs | Large bulk loads, ETL, analytics |
+
 ## 🧠 Advanced Usage
 
 ### 🛠️ Custom Repositories
@@ -418,6 +585,13 @@ const fileDb = DuckDbRepository.getInstances({
 - 🔄 `withTransaction(callback)`: Executes operations within a transaction
 - 📊 `exportData(options)`: Exports table data
 - 📈 `exportQuery(query, options)`: Exports query results
+- ⚡ `appendEntities(entities)`: High-performance bulk insert via the DuckDB Appender API
+
+### ⚡ Appender Helpers
+
+- `appendValue(appender, value, sqlType?)`: Maps a JS value to the correct typed appender method
+- `appendEntity(appender, entity, classType, propertyNames?)`: Appends all decorated columns and calls `endRow()`
+- `createAppender(tableName, schema?, catalog?)`: Creates a raw `DuckDBAppender` (on `DuckDbRepository`)
 
 ## 📜 License
 

@@ -6,6 +6,7 @@ import { QueryBuilder } from '../query/query-builder';
 import { Transaction } from './transaction';
 import { Page, Pageable } from '../pagination/pagination';
 import { EntityNotFoundError, PrimaryKeyError, QueryExecutionError, TransactionError } from '../errors/orm-errors';
+import { appendEntity } from '../helpers/appender.helper';
 
 // Add 'extends object' constraint to T
 export class BaseRepository<T extends object, Tid> implements IRepository<T, Tid> {
@@ -288,5 +289,25 @@ export class BaseRepository<T extends object, Tid> implements IRepository<T, Tid
 
     async exportQuery(query: string, options: ExportOptions): Promise<void> {
         return this.repository.exportQuery(query, options);
+    }
+
+    /**
+     * Efficiently inserts a large batch of entities using the DuckDB Appender API.
+     * This is significantly faster than `saveAll` for large datasets as it bypasses
+     * SQL statement parsing and uses DuckDB's native binary ingestion path.
+     */
+    async appendEntities(entities: T[]): Promise<void> {
+        if (!entities.length) return;
+        const appender = await this.repository.createAppender(this.tableName);
+        // Compute property names once to avoid repeated prototype instantiation per row.
+        const propertyNames = Object.getOwnPropertyNames(new this.classType());
+        try {
+            for (const entity of entities) {
+                appendEntity(appender, entity, this.classType, propertyNames);
+            }
+            appender.flushSync();
+        } finally {
+            appender.closeSync();
+        }
     }
 }

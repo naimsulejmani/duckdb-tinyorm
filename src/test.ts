@@ -1,4 +1,4 @@
-// import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from 'duckdb-tinyorm';
+// import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from './index';
 import 'reflect-metadata';
 import { BaseRepository, Column, DuckDbLocation, DuckDbRepository, Entity, Repository, Transaction } from 'duckdb-tinyorm'
 // Use the async getInstance method instead of getInstances
@@ -70,6 +70,86 @@ class SubjectRepository extends BaseRepository<Subject, number> {
         await this.repository.executeQuery(query);
 
         return entityToDelete;
+    }
+}
+
+// ── Entity & repository for appender tests (no auto-increment PK) ──
+
+@Entity({ name: 'events' })
+class Event {
+    @Column({ type: 'INTEGER', primaryKey: true })
+    Id!: number;
+
+    @Column({ type: 'VARCHAR', notNull: true })
+    Type!: string;
+
+    @Column({ type: 'DOUBLE' })
+    Value!: number;
+
+    constructor(id: number = 0, type: string = '', value: number = 0) {
+        this.Id = id;
+        this.Type = type;
+        this.Value = value;
+    }
+}
+
+@Repository(Event)
+class EventRepository extends BaseRepository<Event, number> {
+    constructor(repo: DuckDbRepository) {
+        super(repo);
+    }
+}
+
+// Two separate entities for the saveAll vs appendEntities perf comparison
+// (each needs its own table so counts don't clash)
+
+@Entity({ name: 'events_perf_save' })
+class EventPerf {
+    @Column({ type: 'INTEGER', primaryKey: true })
+    Id!: number;
+
+    @Column({ type: 'VARCHAR', notNull: true })
+    Type!: string;
+
+    @Column({ type: 'DOUBLE' })
+    Value!: number;
+
+    constructor(id: number = 0, type: string = '', value: number = 0) {
+        this.Id = id;
+        this.Type = type;
+        this.Value = value;
+    }
+}
+
+@Repository(EventPerf)
+class EventPerfRepository extends BaseRepository<EventPerf, number> {
+    constructor(repo: DuckDbRepository) {
+        super(repo);
+    }
+}
+
+@Entity({ name: 'events_perf_append' })
+class EventPerfAppend {
+    @Column({ type: 'INTEGER', primaryKey: true })
+    Id!: number;
+
+    @Column({ type: 'VARCHAR', notNull: true })
+    Type!: string;
+
+    @Column({ type: 'DOUBLE' })
+    Value!: number;
+
+    constructor(id: number = 0, type: string = '', value: number = 0) {
+        this.Id = id;
+        this.Type = type;
+        this.Value = value;
+    }
+}
+
+@Repository(EventPerfAppend)
+class EventPerfAppendRepository extends BaseRepository<EventPerfAppend, number> {
+    constructor(repo: DuckDbRepository) {
+        super(repo);
     }
 }
 
@@ -191,6 +271,90 @@ async function test() {
                 compression: 'ZSTD'
             }
         });
+
+        // ──────────────────────────────────────────────────────
+        // Appender API tests
+        // ──────────────────────────────────────────────────────
+
+        // --- 1. High-level: appendEntities on EventRepository ---
+        console.log("\n=== Appender API Tests ===\n");
+        const eventRepo = new EventRepository(duckDbRepository);
+        await eventRepo.init();
+
+        const events: Event[] = [];
+        for (let i = 1; i <= 1000; i++) {
+            events.push(new Event(i, i % 2 === 0 ? 'click' : 'view', Math.random() * 100));
+        }
+
+        console.log("appendEntities: Inserting 1 000 events via appender...");
+        const appendStart = performance.now();
+        await eventRepo.appendEntities(events);
+        const appendMs = (performance.now() - appendStart).toFixed(2);
+
+        const allEvents = await eventRepo.findAll();
+        console.log(`appendEntities: Inserted ${allEvents.length} events in ${appendMs} ms`);
+        console.table(allEvents.slice(0, 5));
+
+        // --- 2. Low-level: manual appender control ---
+        console.log("\nLow-level appender: Creating table and inserting rows manually...");
+        await duckDbRepository.executeQuery(`
+            CREATE TABLE IF NOT EXISTS manual_events (
+                Id INTEGER PRIMARY KEY,
+                Type VARCHAR NOT NULL,
+                Value DOUBLE
+            )
+        `);
+
+        const appender = await duckDbRepository.createAppender('manual_events');
+
+        appender.appendInteger(1);
+        appender.appendVarchar('click');
+        appender.appendDouble(42.5);
+        appender.endRow();
+
+        appender.appendInteger(2);
+        appender.appendVarchar('view');
+        appender.appendDouble(17.3);
+        appender.endRow();
+
+        appender.appendInteger(3);
+        appender.appendVarchar('scroll');
+        appender.appendDouble(99.9);
+        appender.endRow();
+
+        appender.flushSync();
+        appender.closeSync();
+
+        const manualRows = await duckDbRepository.executeQuery('SELECT * FROM manual_events');
+        console.log(`Low-level appender: Inserted ${manualRows.length} rows`);
+        console.table(manualRows);
+
+        // --- 3. Compare saveAll vs appendEntities performance ---
+        console.log("\nPerformance comparison: saveAll vs appendEntities (500 rows)...");
+
+        const saveAllRepo = new EventPerfRepository(duckDbRepository);
+        await saveAllRepo.init();
+
+        const appendRepo = new EventPerfAppendRepository(duckDbRepository);
+        await appendRepo.init();
+
+        const perfEvents500Save = Array.from({ length: 500 }, (_, i) =>
+            new EventPerf(i + 1, 'perf-save', i * 1.1)
+        );
+        const perfEvents500Append = Array.from({ length: 500 }, (_, i) =>
+            new EventPerfAppend(i + 1, 'perf-append', i * 1.1)
+        );
+
+        const saveAllStart = performance.now();
+        await saveAllRepo.saveAll(perfEvents500Save);
+        const saveAllMs = (performance.now() - saveAllStart).toFixed(2);
+
+        const appendAllStart = performance.now();
+        await appendRepo.appendEntities(perfEvents500Append);
+        const appendAllMs = (performance.now() - appendAllStart).toFixed(2);
+
+        console.log(`saveAll:          ${saveAllMs} ms (500 rows)`);
+        console.log(`appendEntities:   ${appendAllMs} ms (500 rows)`);
     } catch (error) {
         console.error("Error during test execution:", error);
     }

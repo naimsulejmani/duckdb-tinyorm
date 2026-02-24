@@ -15,6 +15,8 @@ import {
     OrmBaseError, EntityNotFoundError, PrimaryKeyError, TableCreationError,
     QueryExecutionError, TransactionError, ValidationError, MigrationError, ConnectionError
 } from './errors/orm-errors';
+import { DuckDBAppender } from '@duckdb/node-api';
+import { appendValue, appendEntity } from './helpers/appender.helper';
 
 export {
     // Original exports
@@ -62,5 +64,10 @@ export {
     MigrationError,
 
     // New export
-    ExportOptions
+    ExportOptions,
+
+    // Appender exports
+    DuckDBAppender,
+    appendValue,
+    appendEntity
 };

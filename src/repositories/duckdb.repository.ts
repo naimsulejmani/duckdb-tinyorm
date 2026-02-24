@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
+import { DuckDBAppender, DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 
 import { mapToSQLFieldsValues } from '../helpers/mapping.helper';
 import { generateCreateTableStatement, generateInsertIntoStatement } from '../helpers/table-util.helper';
@@ -282,6 +282,14 @@ export class DuckDbRepository {
             throw new ConnectionError("Cannot create transaction: Connection is not established.");
         }
         return new Transaction(this.connection);
+    }
+
+    public async createAppender(tableName: string, schema?: string, catalog?: string): Promise<DuckDBAppender> {
+        await this.ensureConnected();
+        if (!this.connection) {
+            throw new ConnectionError("Cannot create appender: Connection is not established.");
+        }
+        return this.connection.createAppender(tableName, schema, catalog);
     }
 
     public async exportTable<T>(tableName: string, options: ExportOptions): Promise<void> {
