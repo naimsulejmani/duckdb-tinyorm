@@ -16,6 +16,7 @@ import {
     QueryExecutionError, TransactionError, ValidationError, MigrationError, ConnectionError
 } from './errors/orm-errors';
 import { DuckDBAppender } from '@duckdb/node-api';
+import { appendValue, appendEntity } from './helpers/appender.helper';
 
 export {
     // Original exports
@@ -65,6 +66,8 @@ export {
     // New export
     ExportOptions,
 
-    // Appender export
-    DuckDBAppender
+    // Appender exports
+    DuckDBAppender,
+    appendValue,
+    appendEntity
 };
