@@ -31,8 +31,13 @@
     "url": "https://github.com/naimsulejmani/duckdb-tinyorm/issues"
   },
   "homepage": "https://github.com/naimsulejmani/duckdb-tinyorm#readme",
+  "peerDependencies": {
+    "@duckdb/node-api": ">=1.4.0"
+  },
+  "devDependencies": {
+    "@duckdb/node-api": "1.4.4-r.1"
+  },
   "dependencies": {
-    "@duckdb/node-api": "1.4.4-r.1",
     "@types/node": "^22.7.4",
     "dotenv": "^16.4.5",
     "globals": "^15.9.0",
