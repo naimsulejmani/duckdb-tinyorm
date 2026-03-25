@@ -32,6 +32,7 @@
   },
   "homepage": "https://github.com/naimsulejmani/duckdb-tinyorm#readme",
   "dependencies": {
+    "@duckdb/node-api": "^1.5.1-r.1",
     "@types/node": "^22.7.4",
     "dotenv": "^16.4.5",
     "duckdb-tinyorm": "^3.1.0",
