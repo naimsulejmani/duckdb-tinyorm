@@ -10,7 +10,6 @@ export function modelToArray<T>(model: T, classType: new() => T): unknown[] {
 }
 
 export function mapToSQLFieldsValues<T>(data: T, classType: new () => T): string {
-    const fields: string[] = [];
     const values: string[] = [];
 
     // Get property names from the entity
@@ -28,9 +27,6 @@ export function mapToSQLFieldsValues<T>(data: T, classType: new () => T): string
         // Get the value
         const value = data[propertyName as keyof T];
 
-        // Add field name
-        fields.push(propertyName);
-
         // Format value based on its type
         if (value === undefined || value === null) {
             values.push('NULL');
@@ -44,12 +40,12 @@ export function mapToSQLFieldsValues<T>(data: T, classType: new () => T): string
         }
     }
 
-    // Make sure we have fields to insert
-    if (fields.length === 0) {
+    // Make sure we have values to insert
+    if (values.length === 0) {
         throw new Error("No fields available for insert after excluding auto-increment fields");
     }
 
-    return `(${fields.join(', ')}) VALUES (${values.join(', ')})`;
+    return `(${values.join(', ')})`;
 }
 
 export function parseJson(input: any): any {

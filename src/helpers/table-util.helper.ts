@@ -110,5 +110,20 @@ export function generateCreateTableStatement<T>(tableName: string, classType: ne
 }
 
 export function generateInsertIntoStatement<T>(tableName: string, classType: new() => T): string {
-    return `INSERT INTO main.${tableName} `;
+    const instance = new classType();
+    const propertyNames = Object.getOwnPropertyNames(instance);
+    const fields: string[] = [];
+
+    for (const propertyName of propertyNames) {
+        const autoIncrement = Reflect.getMetadata('AutoIncrement', classType.prototype, propertyName);
+        const isPrimaryKey = Reflect.getMetadata('PrimaryKey', classType.prototype, propertyName);
+
+        if (autoIncrement && isPrimaryKey) {
+            continue;
+        }
+
+        fields.push(propertyName);
+    }
+
+    return `INSERT INTO main.${tableName} (${fields.join(', ')}) VALUES `;
 }
