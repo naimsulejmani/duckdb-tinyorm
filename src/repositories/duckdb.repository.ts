@@ -86,14 +86,11 @@ export class DuckDbRepository {
 
     private async initSync(location: string, options?: Record<string, string>): Promise<void> {
         try {
-            // Create instance using the static create method as per DuckDB API
-            this.instance = await DuckDBInstance.create(location);
+            // Create instance using the static create method as per DuckDB API.
+            // Options (e.g. { threads: '4', access_mode: 'READ_ONLY' }) are passed
+            // straight through as DuckDB configuration settings.
+            this.instance = await DuckDBInstance.create(location, options);
             console.log(`DuckDB instance created at ${location}`);
-
-            // If we have options and the instance is created successfully, set them
-            if (options && this.instance) {
-                // Set options on the instance if needed
-            }
 
             // Connect immediately after creating the instance
             if (this.instance) {
@@ -373,13 +370,37 @@ export class DuckDbRepository {
     public async sequenceExists(sequenceName: string): Promise<boolean> {
         await this.ensureConnected();
         try {
-            const query = `SELECT sequence_name FROM information_schema.sequences WHERE sequence_name = '${sequenceName}'`;
+            // information_schema.sequences is not available in DuckDB; use the
+            // duckdb_sequences() metadata function instead.
+            const query = `SELECT sequence_name FROM duckdb_sequences() WHERE sequence_name = '${sequenceName.replace(/'/g, "''")}'`;
             const result = await this.executeQuery(query);
             return result && result.length > 0;
         } catch (err) {
             console.error(`ERROR CHECKING SEQUENCE: `, err);
             return false;
         }
+    }
+
+    /**
+     * Resets a sequence so that the next `nextval()` returns `startValue`
+     * (defaults to 1, which is how ORM auto-increment sequences are created).
+     * Works even while the sequence is referenced by a column DEFAULT (which
+     * prevents DROP SEQUENCE in DuckDB). Returns false if the sequence does not exist.
+     *
+     * Note: the start value is passed explicitly because DuckDB reports the
+     * persisted counter as `start_value` in duckdb_sequences() after a file
+     * database is reopened.
+     */
+    public async resetSequence(sequenceName: string, startValue = 1): Promise<boolean> {
+        if (!Number.isSafeInteger(startValue)) {
+            throw new Error(`Invalid sequence start value: ${startValue}`);
+        }
+        if (!(await this.sequenceExists(sequenceName))) {
+            return false;
+        }
+        const escapedName = sequenceName.replace(/'/g, "''");
+        await this.executeQuery(`SELECT setval('${escapedName}', ${startValue}, false)`);
+        return true;
     }
 
     // Method to create a secret in DuckDB

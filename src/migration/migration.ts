@@ -15,12 +15,14 @@ export abstract class Migration {
 
 export class MigrationRunner {
     private readonly migrationTableName: string;
+    private readonly migrationSequenceName: string;
 
     constructor(
         private readonly connection: DuckDBConnection,
         options: MigrationOptions = {}
     ) {
         this.migrationTableName = options.tableName ?? 'migrations';
+        this.migrationSequenceName = `seq_${this.migrationTableName.replace(/\W/g, '_')}_id`;
     }
 
     async initialize(): Promise<void> {
@@ -28,15 +30,19 @@ export class MigrationRunner {
     }
 
     private async createMigrationTableIfNotExists(): Promise<void> {
+        // The id column is fed from a sequence: DuckDB PRIMARY KEY columns are
+        // implicitly NOT NULL, so inserting only `version` requires a generated id.
+        const sequenceQuery = `CREATE SEQUENCE IF NOT EXISTS ${this.migrationSequenceName} START 1`;
         const query = `
             CREATE TABLE IF NOT EXISTS ${this.migrationTableName} (
-                id INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY KEY DEFAULT nextval('${this.migrationSequenceName}'),
                 version VARCHAR NOT NULL UNIQUE,
                 applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `;
         
         try {
+            await this.connection.run(sequenceQuery);
             await this.connection.run(query);
         } catch (error) {
             console.error('Failed to create migration table:', error);
@@ -105,7 +111,9 @@ export class MigrationRunner {
 
     private async applyMigration(migration: Migration): Promise<void> {
         const upQuery = migration.up();
-        const insertQuery = `INSERT INTO ${this.migrationTableName} (version) VALUES ('${migration.version}')`;
+        // id is set explicitly so migration tables created by older versions
+        // (without a DEFAULT on id) keep working.
+        const insertQuery = `INSERT INTO ${this.migrationTableName} (id, version) VALUES (nextval('${this.migrationSequenceName}'), '${migration.version.replace(/'/g, "''")}')`;
         
         // Start transaction
         await this.executeQuery('BEGIN TRANSACTION');
@@ -131,7 +139,7 @@ export class MigrationRunner {
 
     private async revertMigration(migration: Migration): Promise<void> {
         const downQuery = migration.down();
-        const deleteQuery = `DELETE FROM ${this.migrationTableName} WHERE version = '${migration.version}'`;
+        const deleteQuery = `DELETE FROM ${this.migrationTableName} WHERE version = '${migration.version.replace(/'/g, "''")}'`;
         
         // Start transaction
         await this.executeQuery('BEGIN TRANSACTION');
