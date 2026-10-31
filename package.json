@@ -7,10 +7,11 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
-    "test": "echo 'Test not implemented'",
+    "test": "npm run test:types && node --require ./tests/register.js --test --test-reporter=spec tests/memory.test.ts tests/file.test.ts",
     "dev": "nodemon --exec ts-node src/test.ts",
     "start": "node dist/index.js",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "test:types": "tsc -p tsconfig.test.json"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
@@ -32,10 +33,10 @@
   },
   "homepage": "https://github.com/naimsulejmani/duckdb-tinyorm#readme",
   "peerDependencies": {
-    "@duckdb/node-api": "^1.5.3-r.2"
+    "@duckdb/node-api": "^2.0.0-r.1"
   },
   "devDependencies": {
-    "@duckdb/node-api": "^1.5.3-r.2",
+    "@duckdb/node-api": "^2.0.0-r.1",
     "@types/node": "^22.7.4",
     "dotenv": "^16.4.5",
     "globals": "^15.9.0",

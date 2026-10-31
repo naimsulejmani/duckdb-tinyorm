@@ -7,6 +7,8 @@ A lightweight, TypeScript-friendly ORM designed specifically for DuckDB, focusin
 - [🦆 DuckDB TinyORM](#-duckdb-tinyorm)
   - [📋 Table of Contents](#-table-of-contents)
   - [📥 Installation](#-installation)
+    - [🧩 Supported DuckDB Version](#-supported-duckdb-version)
+    - [⬆️ Upgrading from 3.x (DuckDB 1.x) to 4.x (DuckDB 2.0 LTS)](#️-upgrading-from-3x-duckdb-1x-to-4x-duckdb-20-lts)
   - [🚀 Quick Start](#-quick-start)
   - [✨ Core Features](#-core-features)
   - [🏗️ Entity Definition](#️-entity-definition)
@@ -33,6 +35,7 @@ A lightweight, TypeScript-friendly ORM designed specifically for DuckDB, focusin
     - [🔙 Legacy Decorators (backward compatibility)](#-legacy-decorators-backward-compatibility)
     - [🧰 Repository Methods](#-repository-methods)
     - [⚡ Appender Helpers](#-appender-helpers)
+  - [🧪 Development \& Testing](#-development--testing)
   - [📜 License](#-license)
 
 ## 📥 Installation
@@ -46,9 +49,9 @@ yarn add duckdb-tinyorm
 DuckDB TinyORM requires `reflect-metadata` and the DuckDB Node-API for decorator support:
 
 ```bash
-npm install reflect-metadata @duckdb/node-api
+npm install reflect-metadata @duckdb/node-api@^2.0.0-r.1
 # or
-yarn add reflect-metadata @duckdb/node-api
+yarn add reflect-metadata @duckdb/node-api@^2.0.0-r.1
 ```
 
 Make sure to import `reflect-metadata` at the beginning of your application:
@@ -56,6 +59,31 @@ Make sure to import `reflect-metadata` at the beginning of your application:
 ```typescript
 import 'reflect-metadata';
 ```
+
+### 🧩 Supported DuckDB Version
+
+| duckdb-tinyorm | `@duckdb/node-api` (peer) | DuckDB engine |
+|---|---|---|
+| **4.x** | `^2.0.0-r.1` | **2.0.0 LTS** |
+| 3.x | `^1.5.3-r.2` | 1.5.x |
+
+### ⬆️ Upgrading from 3.x (DuckDB 1.x) to 4.x (DuckDB 2.0 LTS)
+
+The ORM's public API is unchanged. Upgrade both packages together:
+
+```bash
+npm install duckdb-tinyorm@^4 @duckdb/node-api@^2.0.0-r.1
+```
+
+Things to be aware of:
+
+- **Storage format:** database files written by DuckDB 2.0 cannot be opened by DuckDB 1.x clients. DuckDB 2.0 can still open files created by 1.x. Back up file-based databases before upgrading if you need to roll back.
+- **ICU extension:** ICU is no longer built into DuckDB core. If you use time zones or collations, run `INSTALL icu; LOAD icu;` via `executeQuery`.
+- **`DuckDbConfig.options` is now applied:** options are passed to `DuckDBInstance.create()` as DuckDB configuration settings. In 3.x they were silently ignored, so check any options you already pass (e.g. `{ threads: '4' }`).
+- **`removeAll()` resets auto-increment sequences** with `setval()`. Previously the reset failed silently because DuckDB won't drop a sequence that a column default depends on, so ids kept counting up.
+- **`MigrationRunner`** now generates migration ids from a sequence (`seq_<table>_id`). Before, recording a migration failed with a `NOT NULL constraint failed: migrations.id` error. Migration tables created by 3.x still work.
+- **Appender type mapping:** unsigned integer types (`UTINYINT`, `USMALLINT`, `UINTEGER`, `UBIGINT`, `UHUGEINT`), `FLOAT`, parameterized types such as `DECIMAL(10,2)`, and JS `Date` values for `DATE`, `TIMESTAMP` and `TIMESTAMPTZ` columns are now appended with the correct typed method.
+- **New helper:** `DuckDbRepository.resetSequence(name, startValue = 1)`. `sequenceExists()` now uses `duckdb_sequences()`; it always returned `false` before because `information_schema.sequences` doesn't exist.
 
 ## 🚀 Quick Start
 
@@ -485,6 +513,10 @@ appendValue(appender, null);          // appendNull
 // Override the inferred method via an explicit SQL type:
 appendValue(appender, 7, 'SMALLINT'); // appendSmallInt
 appendValue(appender, 7, 'DOUBLE');   // appendDouble
+appendValue(appender, 200, 'UTINYINT');           // appendUTinyInt
+appendValue(appender, 19.99, 'DECIMAL(10,2)');    // appendDouble (cast to DECIMAL by DuckDB)
+appendValue(appender, new Date(), 'TIMESTAMP');   // appendTimestamp
+appendValue(appender, new Date(), 'DATE');        // appendDate (UTC)
 
 // appendEntity — appends all decorated columns of an entity + calls endRow()
 appendEntity(appender, event, Event);
@@ -551,6 +583,8 @@ const fileDb = DuckDbRepository.getInstances({
 });
 ```
 
+`options` are passed straight to `DuckDBInstance.create()` as [DuckDB configuration settings](https://duckdb.org/docs/stable/configuration/overview) (string values), e.g. `threads`, `memory_limit`, `access_mode`.
+
 ## 📘 API Reference
 
 ### 🏷️ Decorators
@@ -592,6 +626,22 @@ const fileDb = DuckDbRepository.getInstances({
 - `appendValue(appender, value, sqlType?)`: Maps a JS value to the correct typed appender method
 - `appendEntity(appender, entity, classType, propertyNames?)`: Appends all decorated columns and calls `endRow()`
 - `createAppender(tableName, schema?, catalog?)`: Creates a raw `DuckDBAppender` (on `DuckDbRepository`)
+
+### 🔢 Sequence Helpers (on `DuckDbRepository`)
+
+- `sequenceExists(name)`: Checks whether a sequence exists (via `duckdb_sequences()`)
+- `resetSequence(name, startValue = 1)`: Rewinds a sequence so the next `nextval()` returns `startValue`
+- `dropSequence(name)`: Drops a sequence (fails if a column default still depends on it)
+
+## 🧪 Development & Testing
+
+The compatibility test suite uses Node's built-in test runner. It runs every scenario (repository init, CRUD, transactions, migration apply/revert, appender inserts) in both in-memory and file-based database modes:
+
+```bash
+npm install
+npm test        # type-check + run tests/memory.test.ts and tests/file.test.ts
+npm run build
+```
 
 ## 📜 License
 
