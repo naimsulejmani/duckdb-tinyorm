@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-11-01T20:17:17+01:00",
+  "generatedOnPlatform": "linux",
+  "projectType": "library",
+  "setup": [
+    {
+      "command": "npm",
+      "args": ["ci"]
+    }
+  ],
+  "assertions": [
+    {
+      "name": "tsc-no-emit",
+      "kind": "process",
+      "command": "npx",
+      "args": ["tsc", "--noEmit"],
+      "verificationMethod": "exit-code",
+      "expected": "0",
+      "timeoutSeconds": 180
+    },
+    {
+      "name": "tests-pass",
+      "kind": "process",
+      "command": "npm",
+      "args": ["test"],
+      "verificationMethod": "test-results",
+      "expected": "0",
+      "timeoutSeconds": 300
+    },
+    {
+      "name": "build-succeeds",
+      "kind": "process",
+      "command": "npm",
+      "args": ["run", "build"],
+      "verificationMethod": "exit-code",
+      "expected": "0",
+      "timeoutSeconds": 180
+    },
+    {
+      "name": "build-emits-main",
+      "kind": "process",
+      "command": "node",
+      "args": ["-e", "require('fs').accessSync(require('./package.json').main)"],
+      "verificationMethod": "exit-code",
+      "expected": "0"
+    }
+  ]
+}
