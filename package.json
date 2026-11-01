@@ -39,7 +39,7 @@
     "@duckdb/node-api": "^2.0.0-r.1",
     "@types/node": "^26.6.6",
     "dotenv": "^18.0.9",
-    "globals": "^15.9.0",
+    "globals": "^17.14.0",
     "reflect-metadata": "^0.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
