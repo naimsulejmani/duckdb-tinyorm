@@ -9,6 +9,7 @@
     "moduleDetection": "force",
     "outDir": "./dist",
     "rootDir": "./src",
+    "types": ["node"],
     "strict": true, // Enabled for better type safety
     "esModuleInterop": true,
     "allowJs": true,
