@@ -1,0 +1,132 @@
+{
+  "planHash": "b17416e8373f53ed0d09a6037f352f6dc752644cbaba5626ddd756ca8ccf5058",
+  "phase": "baseline",
+  "recordedAtUtc": "2026-11-01T19:20:27.5680438Z",
+  "retryCount": 0,
+  "resetBaseline": false,
+  "complete": true,
+  "result": {
+    "setupSucceeded": true,
+    "setupDurationMs": 1034,
+    "setupFailureOutput": null,
+    "assertions": [
+      {
+        "name": "tsc-no-emit",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "",
+        "durationMs": 1104
+      },
+      {
+        "name": "tests-pass",
+        "kind": "process",
+        "verificationMethod": "test-results",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\n\u003E duckdb-tinyorm@4.0.0 test\n\u003E npm run test:types \u0026\u0026 node --require ./tests/register.js --test --test-reporter=spec tests/memory.test.ts tests/file.test.ts\n\n\n\u003E duckdb-tinyorm@4.0.0 test:types\n\u003E tsc -p tsconfig.test.json\n\n/tmp/duckdb-tinyorm-FwqPhQ/test.duckdb\nDuckDB instance created at /tmp/duckdb-tinyorm-FwqPhQ/test.duckdb\nDuckDB connection established successfully\n/tmp/duckdb-tinyorm-FwqPhQ/test.duckdb\n\u25B6 file database mode\n  \u2714 is backed by the database file on disk (8.812745ms)\n  \u2714 reopens data written by another process (3.77706ms)\n  \u2714 continues the persisted auto-increment sequence (7.674598ms)\n  \u2714 reconnects after close() (1.839222ms)\n\u2714 file database mode (49.534803ms)\n:memory:\n\u25B6 repository init\n  \u2714 runs on DuckDB 2.x (1.86199ms)\n  \u2714 returns the same singleton instance (0.478698ms)\n\u2714 repository init (2.688781ms)\nSequence seq_subjects_Id is created successfully!\nTable subjects is created successfully!\nTable Subject is created successfully!\nReset sequence seq_subjects_Id for table subjects\nInsert SQL: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027JS-01\u0027, \u0027JavaScript\u0027, \u0027Intro\u0027, 2024)\nInsert SQL: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027TS-01\u0027, \u0027O\u0027\u0027Reilly TypeScript\u0027, NULL, 2025)\n\u25B6 CRUD\n  \u2714 save() assigns auto-increment ids from the sequence (6.544203ms)\nSequence seq_subjects_Id is created successfully!\nTable subjects is created successfully!\nSQL Insert Query: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027PY-01\u0027, \u0027Python\u0027, \u0027Data\u0027, 2023), (\u0027GO-01\u0027, \u0027Go\u0027, \u0027Systems\u0027, 2022)\nExecuting bulk insert query: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027PY-01\u0027, \u0027Python\u0027, \u0027Data\u0027, 2023), (\u0027GO-01\u0027, \u0027Go\u0027, \u0027Systems\u0027, 2022)\n  \u2714 saveAll() bulk inserts rows (5.795567ms)\n  \u2714 findById() / existsById() / findBy() (5.768607ms)\nInsert SQL: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027OLD-01\u0027, \u0027Old\u0027, NULL, 1999)\n  \u2714 findWithPagination() (2.976251ms)\nError executing query: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027OLD-01\u0027, \u0027Old\u0027, NULL, 1999) [Error: Constraint Error: CHECK constraint failed on table \u0022subjects\u0022 with expression CHECK((\u0022Year\u0022 \u003E= 2000))]\nError saving entity: [Error: Constraint Error: CHECK constraint failed on table \u0022subjects\u0022 with expression CHECK((\u0022Year\u0022 \u003E= 2000))]\nInsert SQL: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027JS-01\u0027, \u0027Duplicate\u0027, NULL, 2024)\nError executing query: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027JS-01\u0027, \u0027Duplicate\u0027, NULL, 2024) [Error: Constraint Error: Duplicate key \u0022Code: JS-01\u0022 violates unique constraint.]\nError saving entity: [Error: Constraint Error: Duplicate key \u0022Code: JS-01\u0022 violates unique constraint.]\n  \u2714 enforces CHECK and UNIQUE constraints (3.164265ms)\n  \u2714 removeById() (3.483653ms)\nReset sequence seq_subjects_Id for table subjects\nInsert SQL: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027NEW-01\u0027, \u0027Fresh start\u0027, NULL, 2024)\n  \u2714 removeAll() clears rows and resets the sequence (6.658116ms)\n\u2714 CRUD (43.636499ms)\nSequence seq_subjects_Id is created successfully!\nTable subjects is created successfully!\nTable Subject is created successfully!\nReset sequence seq_subjects_Id for table subjects\nInsert SQL: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027TX-01\u0027, \u0027Committed\u0027, NULL, 2024)\n\u25B6 transactions\n  \u2714 commits on success (3.504327ms)\nInsert SQL: INSERT INTO main.subjects (Code, Name, Description, Year) VALUES (\u0027TX-02\u0027, \u0027Rolled back\u0027, NULL, 2024)\n  \u2714 rolls back on failure (3.924078ms)\n  \u2714 supports manual begin/rollback (2.872396ms)\n\u2714 transactions (14.511301ms)\nMigration 001 applied successfully\nMigration 002 applied successfully\n\u25B6 migrations\n  \u2714 applies migrations in version order (28.711873ms)\n  \u2714 is idempotent when re-applied (3.238717ms)\nFailed to execute query: ALTER TABLE does_not_exist ADD COLUMN x INTEGER [Error: Catalog Error: Table with name does_not_exist does not exist!\nDid you mean \u0022pg_settings\u0022?]\nFailed to apply migration 003: [Error: Catalog Error: Table with name does_not_\n\u2026[truncated]",
+        "durationMs": 4308,
+        "testResults": {
+          "testFramework": "unknown",
+          "runnerDetectedFrom": "none",
+          "testsTotal": 0,
+          "testsPassed": 0,
+          "testsFailed": 0,
+          "testsSkipped": 0,
+          "parseFailed": true
+        }
+      },
+      {
+        "name": "build-succeeds",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\n\u003E duckdb-tinyorm@4.0.0 build\n\u003E tsc\n\n",
+        "durationMs": 1047
+      },
+      {
+        "name": "build-emits-main",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "",
+        "durationMs": 19
+      }
+    ],
+    "executions": [
+      {
+        "source": "setup[0]",
+        "resolvedExecutable": "/home/naimsulejmani/.local/share/nvm/v22.19.0/bin/npm",
+        "args": [
+          "ci"
+        ],
+        "cwd": "/home/naimsulejmani/Developments/Github/naimsulejmani/duckdb-tinyorm",
+        "env": {},
+        "prependPath": [],
+        "platform": "linux"
+      },
+      {
+        "source": "tsc-no-emit",
+        "resolvedExecutable": "/home/naimsulejmani/.local/share/nvm/v22.19.0/bin/npx",
+        "args": [
+          "tsc",
+          "--noEmit"
+        ],
+        "cwd": "/home/naimsulejmani/Developments/Github/naimsulejmani/duckdb-tinyorm",
+        "env": {},
+        "prependPath": [],
+        "platform": "linux"
+      },
+      {
+        "source": "tests-pass",
+        "resolvedExecutable": "/home/naimsulejmani/.local/share/nvm/v22.19.0/bin/npm",
+        "args": [
+          "test"
+        ],
+        "cwd": "/home/naimsulejmani/Developments/Github/naimsulejmani/duckdb-tinyorm",
+        "env": {},
+        "prependPath": [],
+        "platform": "linux"
+      },
+      {
+        "source": "build-succeeds",
+        "resolvedExecutable": "/home/naimsulejmani/.local/share/nvm/v22.19.0/bin/npm",
+        "args": [
+          "run",
+          "build"
+        ],
+        "cwd": "/home/naimsulejmani/Developments/Github/naimsulejmani/duckdb-tinyorm",
+        "env": {},
+        "prependPath": [],
+        "platform": "linux"
+      },
+      {
+        "source": "build-emits-main",
+        "resolvedExecutable": "/home/naimsulejmani/.local/share/nvm/v22.19.0/bin/node",
+        "args": [
+          "-e",
+          "require(\u0027fs\u0027).accessSync(require(\u0027./package.json\u0027).main)"
+        ],
+        "cwd": "/home/naimsulejmani/Developments/Github/naimsulejmani/duckdb-tinyorm",
+        "env": {},
+        "prependPath": [],
+        "platform": "linux"
+      }
+    ]
+  }
+}
