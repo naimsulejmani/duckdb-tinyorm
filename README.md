@@ -49,9 +49,9 @@ yarn add duckdb-tinyorm
 DuckDB TinyORM requires `reflect-metadata` and the DuckDB Node-API for decorator support:
 
 ```bash
-npm install reflect-metadata @duckdb/node-api@^2.0.0-r.1
+npm install reflect-metadata @duckdb/node-api@^2.0.1-r.1
 # or
-yarn add reflect-metadata @duckdb/node-api@^2.0.0-r.1
+yarn add reflect-metadata @duckdb/node-api@^2.0.1-r.1
 ```
 
 Make sure to import `reflect-metadata` at the beginning of your application:
@@ -64,7 +64,7 @@ import 'reflect-metadata';
 
 | duckdb-tinyorm | `@duckdb/node-api` (peer) | DuckDB engine |
 |---|---|---|
-| **4.x** | `^2.0.0-r.1` | **2.0.0 LTS** |
+| **4.x** | `^2.0.0-r.1 \|\| ^2.0.1-r.1` | **2.0.x LTS** |
 | 3.x | `^1.5.3-r.2` | 1.5.x |
 
 ### ⬆️ Upgrading from 3.x (DuckDB 1.x) to 4.x (DuckDB 2.0 LTS)
@@ -72,7 +72,7 @@ import 'reflect-metadata';
 The ORM's public API is unchanged. Upgrade both packages together:
 
 ```bash
-npm install duckdb-tinyorm@^4 @duckdb/node-api@^2.0.0-r.1
+npm install duckdb-tinyorm@^4 @duckdb/node-api@^2.0.1-r.1
 ```
 
 Things to be aware of:

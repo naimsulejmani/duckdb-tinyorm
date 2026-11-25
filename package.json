@@ -1,6 +1,6 @@
 {
   "name": "duckdb-tinyorm",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "TinyORM for Duckdb, easy setup",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -33,10 +33,10 @@
   },
   "homepage": "https://github.com/naimsulejmani/duckdb-tinyorm#readme",
   "peerDependencies": {
-    "@duckdb/node-api": "^2.0.0-r.1"
+    "@duckdb/node-api": "^2.0.0-r.1 || ^2.0.1-r.1"
   },
   "devDependencies": {
-    "@duckdb/node-api": "^2.0.0-r.1",
+    "@duckdb/node-api": "^2.0.1-r.1",
     "@types/node": "^26.6.6",
     "@typescript/native": "npm:typescript@^7.0.2",
     "dotenv": "^18.0.9",
